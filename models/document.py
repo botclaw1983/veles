@@ -41,6 +41,27 @@ class DocumentStatus(str, Enum):
         }
         return labels[self]
 
+    @property
+    def approval_label(self) -> str:
+        if self in (DocumentStatus.APPROVED, DocumentStatus.SENT_TO_AVANKOR):
+            return "Согласован"
+        if self == DocumentStatus.ON_APPROVAL:
+            return "Ожидается согласование"
+        return "Не согласован"
+
+
+class ApprovalPhase(str, Enum):
+    NOT_APPROVED = "not_approved"
+    PENDING = "pending"
+    APPROVED = "approved"
+
+
+@dataclass
+class Approver:
+    name: str
+    role: str = ""
+    approved: bool = False
+
 
 @dataclass
 class DocumentFields:
@@ -60,6 +81,7 @@ class Document:
     status: DocumentStatus = DocumentStatus.NEW
     document_type: DocumentType | None = None
     fields: DocumentFields = field(default_factory=DocumentFields)
+    approvers: list[Approver] = field(default_factory=list)
 
     diadoc_box_id: str | None = None
     diadoc_message_id: str | None = None
@@ -71,3 +93,34 @@ class Document:
 
     def touch(self) -> None:
         self.updated_at = datetime.now()
+
+    @property
+    def approval_phase(self) -> ApprovalPhase:
+        if self.status in (DocumentStatus.APPROVED, DocumentStatus.SENT_TO_AVANKOR):
+            return ApprovalPhase.APPROVED
+        if self.status == DocumentStatus.ON_APPROVAL:
+            return ApprovalPhase.PENDING
+        return ApprovalPhase.NOT_APPROVED
+
+    def ensure_approvers(self, defaults: list[tuple[str, str]]) -> None:
+        if self.approvers:
+            return
+        self.approvers = [Approver(name=name, role=role) for name, role in defaults]
+
+    def is_fully_approved(self) -> bool:
+        return bool(self.approvers) and all(a.approved for a in self.approvers)
+
+    @property
+    def all_approvers_approved(self) -> bool:
+        return self.is_fully_approved()
+
+    def reset_approvals(self) -> None:
+        for approver in self.approvers:
+            approver.approved = False
+
+    def approve_approver(self, index: int) -> None:
+        if index < 0 or index >= len(self.approvers):
+            return
+        self.approvers[index].approved = True
+        if self.is_fully_approved():
+            self.status = DocumentStatus.APPROVED

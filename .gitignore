@@ -30,6 +30,8 @@ build/
 
 # Local data (documents, uploads)
 data/
+pdf_docs/*
+!pdf_docs/.gitkeep
 
 # Obsidian workspace (optional local state)
 veles_obsidian/.obsidian/workspace.json

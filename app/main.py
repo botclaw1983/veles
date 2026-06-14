@@ -8,7 +8,10 @@ if str(ROOT) not in sys.path:
 import streamlit as st
 
 from app.auth import logout_button, require_auth
-from app.views import document, inbox, settings
+from app.branding import configure_app_branding
+from app.services.reference_store import init_references
+from app.views import deposits, directories, document, inbox, income, loans
+from app.views import settings as settings_page
 from config.settings import settings
 
 st.set_page_config(
@@ -18,16 +21,46 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+configure_app_branding()
+
+st.markdown(
+    """
+    <style>
+    [data-testid="stSidebar"] {
+        width: 22% !important;
+    }
+    [data-testid="stSidebarNav"] a span {
+        font-size: 0.875rem;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 if not require_auth():
     st.stop()
 
+init_references()
+
 logout_button()
+
+document_page = st.Page(
+    document.render,
+    title="Обработка",
+    icon="📝",
+    url_path="document",
+)
+st.session_state["nav_document_page"] = document_page
 
 pg = st.navigation(
     [
-        st.Page(inbox.render, title="Входящие", icon="📥", default=True),
-        st.Page(document.render, title="Документ", icon="📝"),
-        st.Page(settings.render, title="Настройки", icon="⚙️"),
+        st.Page(inbox.render, title="Входящие", icon="📥", default=True, url_path="inbox"),
+        document_page,
+        st.Page(directories.render, title="Справочники", icon="📚", url_path="directories"),
+        st.Page(loans.render, title="Займы", icon="💰", url_path="loans"),
+        st.Page(deposits.render, title="Депозиты", icon="🏦", url_path="deposits"),
+        st.Page(income.render, title="Доход", icon="📈", url_path="income"),
+        st.Page(settings_page.render, title="Настройки", icon="⚙️", url_path="settings"),
     ]
 )
 pg.run()

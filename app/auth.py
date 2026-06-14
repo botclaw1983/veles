@@ -13,12 +13,11 @@ def init_session() -> None:
 
 
 def render_login() -> None:
-    st.title("Veles")
     st.caption("Автоматизация документооборота УК ПИФ")
 
     with st.form("login"):
-        username = st.text_input("Логин")
-        password = st.text_input("Пароль", type="password")
+        username = st.text_input("Логин", value=settings.auth_username)
+        password = st.text_input("Пароль", type="password", value=settings.auth_password)
         submitted = st.form_submit_button("Войти", type="primary")
 
     if submitted:
