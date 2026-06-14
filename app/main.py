@@ -21,6 +21,11 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+try:
+    st.set_option("client.toolbarMode", "minimal")
+except Exception:
+    pass
+
 configure_app_branding()
 
 st.markdown(
