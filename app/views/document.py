@@ -5,18 +5,17 @@ import streamlit as st
 
 from app.components.approval_status import render_approval_status
 from app.components.pdf_viewer import render_pdf
+from app.services.document_store import get_document, save_document
 from app.services.reference_store import get_approvers, get_document_types, get_funds, resolve_document_type
-from models.document import Document, DocumentStatus, DocumentType
+from integrations.ollama_recognition import ExtractedFields, check_ollama_available, extract_fields_from_pdf
+from models.document import Document, DocumentStatus
 
 
 def _get_selected_document() -> Document | None:
     doc_id = st.session_state.get("selected_document_id")
     if not doc_id:
         return None
-    for doc in st.session_state.get("documents", []):
-        if doc.id == doc_id:
-            return doc
-    return None
+    return get_document(doc_id)
 
 
 def _is_fully_approved(doc: Document) -> bool:
@@ -34,6 +33,7 @@ def _approve_approver(doc: Document, idx: int) -> None:
         doc.approvers[idx].approved = True
         if _is_fully_approved(doc):
             doc.status = DocumentStatus.APPROVED
+    save_document(doc)
 
 
 def _render_approvers(doc: Document) -> None:
@@ -69,10 +69,55 @@ def _render_approvers(doc: Document) -> None:
                 type="tertiary",
             ):
                 _approve_approver(doc, idx)
-                doc.touch()
                 st.rerun()
         with text_col:
             st.markdown(f"**{approver.name}** — _{approver.role}_")
+
+
+def _apply_extracted_fields(doc: Document, extracted: ExtractedFields) -> None:
+    if extracted.document_type:
+        resolved = resolve_document_type(extracted.document_type)
+        if resolved:
+            doc.document_type = resolved
+
+    if extracted.counterparty_name:
+        doc.fields.counterparty_name = extracted.counterparty_name
+    if extracted.counterparty_inn:
+        doc.fields.counterparty_inn = extracted.counterparty_inn
+    if extracted.fund_name:
+        doc.fields.fund_name = extracted.fund_name
+    if extracted.fund_inn:
+        doc.fields.fund_inn = extracted.fund_inn
+    if extracted.amount is not None:
+        doc.fields.amount = extracted.amount
+    if extracted.period_from:
+        doc.fields.period_from = extracted.period_from
+    if extracted.period_to:
+        doc.fields.period_to = extracted.period_to
+    if extracted.description:
+        doc.fields.description = extracted.description
+    doc.touch()
+
+
+def _render_recognition(doc: Document) -> None:
+    if not doc.pdf_filename or not Path(doc.pdf_filename).is_file():
+        return
+
+    ok, error = check_ollama_available()
+    if not ok:
+        st.caption(f"Распознавание недоступно: {error}")
+        return
+
+    if st.button("Распознать PDF", use_container_width=True, key=f"recognize_{doc.id}"):
+        with st.spinner("Распознавание документа..."):
+            try:
+                extracted = extract_fields_from_pdf(doc.pdf_filename)
+                _apply_extracted_fields(doc, extracted)
+                save_document(doc)
+                st.success("Реквизиты заполнены. Проверьте и сохраните.")
+                st.rerun()
+            except Exception as exc:  # noqa: BLE001 — показываем ошибку в UI
+                st.error(f"Ошибка распознавания: {exc}")
 
 
 def _render_requisites(doc: Document) -> None:
@@ -116,6 +161,20 @@ def _render_requisites(doc: Document) -> None:
         step=0.01,
     )
 
+    doc.fields.counterparty_name = st.text_input(
+        "Контрагент",
+        value=doc.fields.counterparty_name,
+    )
+    doc.fields.counterparty_inn = st.text_input(
+        "ИНН контрагента",
+        value=doc.fields.counterparty_inn,
+    )
+    doc.fields.description = st.text_area(
+        "Назначение / описание",
+        value=doc.fields.description,
+        height=68,
+    )
+
     st.markdown("**Период**")
     period_col1, period_col2 = st.columns(2)
     with period_col1:
@@ -132,7 +191,7 @@ def _render_requisites(doc: Document) -> None:
         )
 
     if st.button("Сохранить", use_container_width=True):
-        doc.touch()
+        save_document(doc)
         st.success("Сохранено")
 
 
@@ -243,7 +302,7 @@ def render() -> None:
 
     if doc is None:
         st.subheader("Обработка")
-        st.warning("Выберите документ на странице «Входящие» и нажмите «Обработать».")
+        st.warning("Выберите документ на странице «Документы» и нажмите «Обработать».")
         return
 
     doc.ensure_approvers(get_approvers())
@@ -259,6 +318,7 @@ def render() -> None:
             st.info("PDF-файл не найден.")
 
     with col_side:
+        _render_recognition(doc)
         _render_requisites(doc)
 
         st.markdown("---")
@@ -273,7 +333,7 @@ def render() -> None:
             use_container_width=True,
         ):
             doc.status = DocumentStatus.SENT_TO_AVANKOR
-            doc.touch()
+            save_document(doc)
             st.success("Документ отправлен в Аванкор (демо).")
             st.rerun()
 

@@ -8,12 +8,15 @@ ASSETS_DIR = Path(__file__).resolve().parent / "assets"
 VELES_LOGO = ASSETS_DIR / "veles_capital_logo.svg"
 VELES_LOGO_URL = "https://veles-capital.ru/"
 
-# Ширина полоски сайдбара в свёрнутом состоянии (стрелка + логотип в ряд)
+# Ширина полоски сайдбара в свёрнутом состоянии (только кнопка «развернуть»)
 SIDEBAR_RAIL = "7rem"
+# Горизонтальный отступ основного контента Streamlit (wide layout)
+MAIN_PADDING_X = "1rem"
 
 
 def inject_brand_styles() -> None:
     rail = SIDEBAR_RAIL
+    main_pad = MAIN_PADDING_X
     st.markdown(
         f"""
         <style>
@@ -116,35 +119,49 @@ def inject_brand_styles() -> None:
         }}
 
         /*
-         * Свёрнутый сайдбар: стрелка слева, логотип правее.
-         * Streamlit кладёт их в TDe (первый блок stToolbar): [логотип][стрелка].
-         * row-reverse меняет порядок без order на вложенных элементах.
+         * Свёрнутый сайдбар: стрелка в узкой полоске слева,
+         * логотип — в зоне контента (как заголовок страницы по оси X).
          */
         body:has(section[data-testid="stSidebar"][aria-expanded="false"]) header[data-testid="stHeader"] {{
             position: fixed !important;
             top: 0 !important;
             left: 0 !important;
-            right: auto !important;
-            width: {rail} !important;
-            min-width: {rail} !important;
-            max-width: {rail} !important;
+            right: 0 !important;
+            width: 100% !important;
+            min-width: 100% !important;
+            max-width: 100% !important;
             height: 3.25rem !important;
             min-height: 3.25rem !important;
+            background-color: transparent !important;
+            border-right: none !important;
+            z-index: 1001 !important;
+            pointer-events: none !important;
+            box-sizing: border-box !important;
+        }}
+
+        body:has(section[data-testid="stSidebar"][aria-expanded="false"]) header[data-testid="stHeader"]::before {{
+            content: "" !important;
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: {rail} !important;
+            height: 100% !important;
             background-color: #f0f2f6 !important;
             border-right: 1px solid #e5e7eb !important;
-            z-index: 1001 !important;
-            pointer-events: auto !important;
-            box-sizing: border-box !important;
+            z-index: 0 !important;
+            pointer-events: none !important;
         }}
 
         body:has(section[data-testid="stSidebar"][aria-expanded="false"]) [data-testid="stToolbar"] {{
             width: 100% !important;
             height: 100% !important;
-            padding: 0 0.15rem !important;
+            padding: 0 !important;
             background: transparent !important;
+            pointer-events: auto !important;
         }}
 
         body:has(section[data-testid="stSidebar"][aria-expanded="false"]) [data-testid="stToolbar"] > div {{
+            position: relative !important;
             width: 100% !important;
             height: 100% !important;
             justify-content: flex-start !important;
@@ -152,10 +169,9 @@ def inject_brand_styles() -> None:
 
         body:has(section[data-testid="stSidebar"][aria-expanded="false"]) [data-testid="stToolbar"] > div > div:first-child {{
             display: flex !important;
-            flex-direction: row-reverse !important;
+            flex-direction: row !important;
             align-items: center !important;
-            justify-content: flex-end !important;
-            gap: 0.15rem !important;
+            justify-content: flex-start !important;
             width: 100% !important;
             height: 100% !important;
             margin: 0 !important;
@@ -171,9 +187,14 @@ def inject_brand_styles() -> None:
         }}
 
         body:has(section[data-testid="stSidebar"][aria-expanded="false"]) [data-testid="stExpandSidebarButton"] {{
+            position: absolute !important;
+            left: 0.15rem !important;
+            top: 50% !important;
+            transform: translateY(-50%) !important;
             display: inline-flex !important;
             visibility: visible !important;
             pointer-events: auto !important;
+            z-index: 2 !important;
         }}
 
         body:has(section[data-testid="stSidebar"][aria-expanded="false"]) [data-testid="stHeaderLogo"],
@@ -181,20 +202,21 @@ def inject_brand_styles() -> None:
             display: flex !important;
             visibility: visible !important;
             align-items: center !important;
-            flex: 1 1 auto !important;
+            flex: 0 1 auto !important;
             min-width: 0 !important;
-            margin: 0 !important;
+            margin: 0 0 0 calc({rail} + {main_pad}) !important;
             padding: 0 !important;
+            pointer-events: auto !important;
         }}
 
         body:has(section[data-testid="stSidebar"][aria-expanded="false"]) [data-testid="stHeaderLogo"] img,
         body:has(section[data-testid="stSidebar"][aria-expanded="false"]) [data-testid="stLogo"] img {{
             display: block !important;
             visibility: visible !important;
-            width: 100% !important;
-            max-width: calc({rail} - 2.5rem) !important;
+            width: auto !important;
+            max-width: min(18rem, calc(100vw - {rail} - 2 * {main_pad})) !important;
             height: auto !important;
-            max-height: 2rem !important;
+            max-height: 2.25rem !important;
             object-fit: contain !important;
             object-position: left center !important;
         }}

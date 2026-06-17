@@ -6,8 +6,6 @@ from config.settings import settings
 def init_session() -> None:
     if "authenticated" not in st.session_state:
         st.session_state.authenticated = False
-    if "documents" not in st.session_state:
-        st.session_state.documents = []
     if "selected_document_id" not in st.session_state:
         st.session_state.selected_document_id = None
 

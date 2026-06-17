@@ -15,8 +15,22 @@ class Settings:
     diadoc_api_url: str = os.getenv("DIADOC_API_URL", "https://diadoc-api.kontur.ru")
     diadoc_client_id: str | None = os.getenv("DIADOC_CLIENT_ID")
     diadoc_access_token: str | None = os.getenv("DIADOC_ACCESS_TOKEN")
+    diadoc_box_ids: list[str] = [
+        box_id.strip()
+        for box_id in os.getenv("DIADOC_BOX_IDS", "").split(",")
+        if box_id.strip()
+    ]
 
     avankor_base_url: str | None = os.getenv("AVANKOR_BASE_URL")
+
+    ollama_host: str = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434")
+    ollama_model: str = os.getenv("OLLAMA_MODEL", "veles-vl")
+    ollama_num_ctx: int = int(os.getenv("OLLAMA_NUM_CTX", "2048"))
+
+    database_url: str = os.getenv(
+        "DATABASE_URL",
+        "postgresql+psycopg://veles:veles_secret@localhost:5432/veles",
+    )
 
     # Заглушка авторизации для прототипа
     auth_username: str = os.getenv("VELES_AUTH_USER", "admin")

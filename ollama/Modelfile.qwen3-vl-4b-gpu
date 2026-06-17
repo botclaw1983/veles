@@ -1,0 +1,6 @@
+# Оптимизированная конфигурация для RTX 4060 8GB (Veles)
+# instruct-вариант без thinking-режима
+FROM qwen3-vl:4b-instruct
+
+PARAMETER num_ctx 2048
+PARAMETER temperature 0.1

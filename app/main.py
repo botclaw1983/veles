@@ -13,6 +13,7 @@ from app.services.reference_store import init_references
 from app.views import deposits, directories, document, inbox, income, loans
 from app.views import settings as settings_page
 from config.settings import settings
+from db import init_db
 
 st.set_page_config(
     page_title=settings.app_title,
@@ -27,6 +28,12 @@ except Exception:
     pass
 
 configure_app_branding()
+
+try:
+    init_db()
+except Exception as exc:
+    st.error(f"Не удалось подключиться к PostgreSQL: {exc}")
+    st.stop()
 
 st.markdown(
     """
@@ -59,7 +66,7 @@ st.session_state["nav_document_page"] = document_page
 
 pg = st.navigation(
     [
-        st.Page(inbox.render, title="Входящие", icon="📥", default=True, url_path="inbox"),
+        st.Page(inbox.render, title="Документы", icon="📄", default=True, url_path="inbox"),
         document_page,
         st.Page(directories.render, title="Справочники", icon="📚", url_path="directories"),
         st.Page(loans.render, title="Займы", icon="💰", url_path="loans"),

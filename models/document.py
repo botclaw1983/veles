@@ -46,8 +46,23 @@ class DocumentStatus(str, Enum):
         if self in (DocumentStatus.APPROVED, DocumentStatus.SENT_TO_AVANKOR):
             return "Согласован"
         if self == DocumentStatus.ON_APPROVAL:
-            return "Ожидается согласование"
+            return "На согласовании"
         return "Не согласован"
+
+
+class BankClientStatus(str, Enum):
+    NOT_UPLOADED = "not_uploaded"
+    UPLOADED = "uploaded"
+    PAID = "paid"
+
+    @property
+    def label(self) -> str:
+        labels = {
+            BankClientStatus.NOT_UPLOADED: "—",
+            BankClientStatus.UPLOADED: "Загружено",
+            BankClientStatus.PAID: "Оплачено",
+        }
+        return labels[self]
 
 
 class ApprovalPhase(str, Enum):
@@ -86,6 +101,8 @@ class Document:
     diadoc_box_id: str | None = None
     diadoc_message_id: str | None = None
     diadoc_entity_id: str | None = None
+
+    bank_client_status: BankClientStatus = BankClientStatus.NOT_UPLOADED
 
     pdf_filename: str | None = None
     received_at: datetime = field(default_factory=datetime.now)

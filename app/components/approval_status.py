@@ -1,5 +1,6 @@
 import streamlit as st
 
+from app.services.document_store import save_document
 from models.document import ApprovalPhase, Document, DocumentStatus
 
 
@@ -15,15 +16,15 @@ def render_approval_status(doc: Document) -> None:
         ):
             doc.status = DocumentStatus.ON_APPROVAL
             doc.reset_approvals()
-            doc.touch()
+            save_document(doc)
             st.rerun()
         return
 
     if phase == ApprovalPhase.PENDING:
-        label = "Ожидается согласование"
-        background = "#fef9c3"
-        border = "#ca8a04"
-        color = "#854d0e"
+        label = "На согласовании"
+        background = "#f3f4f6"
+        border = "#d1d5db"
+        color = "#6b7280"
     else:
         label = "Согласован"
         background = "#dcfce7"
