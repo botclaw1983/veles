@@ -6,6 +6,14 @@
 Интеграция с «Аванкор: Паевые фонды» — в [INTEGRATION_AVANKOR.md](./INTEGRATION_AVANKOR.md).  
 Интеграция с Diadoc — в [INTEGRATION_DIADOC.md](./INTEGRATION_DIADOC.md).
 
+<img width="1453" height="936" alt="image" src="https://github.com/user-attachments/assets/00b199e0-29e0-4070-9776-a523ad9dd055" />
+<img width="2429" height="1322" alt="image" src="https://github.com/user-attachments/assets/8c023469-6e1a-40d3-948c-d18c3a4dfcf4" />
+<img width="2429" height="1390" alt="image" src="https://github.com/user-attachments/assets/6e7d441c-be26-4381-bf45-cd30922cf4b9" />
+<img width="2429" height="1390" alt="image" src="https://github.com/user-attachments/assets/207cd05a-3f91-48ae-adc2-f782a7201ded" />
+<img width="2466" height="1392" alt="image" src="https://github.com/user-attachments/assets/aa53e952-3b61-498a-8007-e07469492277" />
+<img width="2429" height="1390" alt="image" src="https://github.com/user-attachments/assets/ef9e6933-3d3e-4b7f-88d1-f24409e9a938" />
+
+
 ## Запуск
 
 ### 1. Docker и PostgreSQL
