@@ -65,6 +65,57 @@ def _render_name_inn_editor(
             st.rerun()
 
 
+def _render_counterparties_editor() -> None:
+    st.caption("Контрагенты из входящих документов")
+    df = pd.DataFrame(st.session_state.ref_counterparties)
+    for column in ("comment", "lawyer_comment"):
+        if column not in df.columns:
+            df[column] = ""
+
+    edited = st.data_editor(
+        df,
+        column_config={
+            "name": st.column_config.TextColumn("Название", required=True),
+            "inn": st.column_config.TextColumn("ИНН", required=True),
+            "comment": st.column_config.TextColumn("Комментарий"),
+            "lawyer_comment": st.column_config.TextColumn("Комментарий юриста"),
+        },
+        num_rows="dynamic",
+        hide_index=True,
+        use_container_width=True,
+        key="editor_counterparties",
+    )
+
+    if st.button("Сохранить", key="save_counterparties", use_container_width=True):
+        records: list[dict[str, str]] = []
+        for _, row in edited.fillna("").iterrows():
+            name = str(row["name"]).strip()
+            inn = str(row["inn"]).strip()
+            comment = str(row.get("comment", "")).strip()
+            lawyer_comment = str(row.get("lawyer_comment", "")).strip()
+            if not name and not inn and not comment and not lawyer_comment:
+                continue
+            if not name or not inn:
+                st.error("Заполните название и ИНН в каждой строке или удалите пустую строку.")
+                return
+            records.append(
+                {
+                    "name": name,
+                    "inn": inn,
+                    "comment": comment,
+                    "lawyer_comment": lawyer_comment,
+                }
+            )
+
+        if not records:
+            st.error("Добавьте хотя бы одного контрагента.")
+            return
+
+        st.session_state.ref_counterparties = records
+        st.success("Сохранено")
+        st.rerun()
+
+
 def _render_shareholders_editor() -> None:
     st.caption("Акционеры закрытых паевых инвестиционных фондов")
     zpif_options = get_zpif_names() or ["—"]
@@ -205,12 +256,7 @@ def render() -> None:
         _render_shareholders_editor()
 
     with tab_counterparties:
-        _render_name_inn_editor(
-            caption="Контрагенты из входящих документов",
-            state_key="ref_counterparties",
-            save_key="counterparties",
-            empty_message="Добавьте хотя бы одного контрагента.",
-        )
+        _render_counterparties_editor()
 
     with tab_approvers:
         _render_approvers_editor()

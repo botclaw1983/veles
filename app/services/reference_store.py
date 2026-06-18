@@ -10,11 +10,14 @@ from config.reference_data import (
     DEFAULT_COUNTERPARTIES,
     DEFAULT_DEPOSIT_ACCOUNTS,
     DEFAULT_DEPOSITS_HISTORY,
+    DEFAULT_EXTRA_APPROVER_ROWS,
     DEFAULT_FUNDS,
     DEFAULT_LOAN_ACCOUNTS,
     DEFAULT_LOANS_HISTORY,
+    EXTRA_APPROVER_COUNT,
     DEFAULT_ZPIF,
     DEFAULT_ZPIF_SHAREHOLDERS,
+    MAIN_APPROVER_COUNT,
 )
 from models.document import DocumentType
 
@@ -47,6 +50,22 @@ def _default_approvers() -> list[dict[str, str]]:
         }
         for row in DEFAULT_APPROVER_ROWS
     ]
+
+
+def _migrate_counterparties(records: list[dict]) -> list[dict[str, str]]:
+    migrated: list[dict[str, str]] = []
+    for row in records:
+        if not isinstance(row, dict):
+            continue
+        migrated.append(
+            {
+                "name": str(row.get("name", "")).strip(),
+                "inn": str(row.get("inn", "")).strip(),
+                "comment": str(row.get("comment", "")).strip(),
+                "lawyer_comment": str(row.get("lawyer_comment", "")).strip(),
+            }
+        )
+    return migrated
 
 
 def _migrate_approvers(records: list[dict]) -> list[dict[str, str]]:
@@ -95,12 +114,18 @@ def init_references() -> None:
         st.session_state.ref_zpif_shareholders = copy.deepcopy(DEFAULT_ZPIF_SHAREHOLDERS)
     if "ref_counterparties" not in st.session_state:
         st.session_state.ref_counterparties = copy.deepcopy(DEFAULT_COUNTERPARTIES)
+    else:
+        st.session_state.ref_counterparties = _migrate_counterparties(
+            st.session_state.ref_counterparties
+        )
     if "ref_loan_accounts" not in st.session_state:
         st.session_state.ref_loan_accounts = copy.deepcopy(DEFAULT_LOAN_ACCOUNTS)
     if "ref_approvers" not in st.session_state:
         st.session_state.ref_approvers = _default_approvers()
     else:
         st.session_state.ref_approvers = _migrate_approvers(st.session_state.ref_approvers)
+        if len(st.session_state.ref_approvers) < len(DEFAULT_APPROVER_ROWS):
+            st.session_state.ref_approvers = _default_approvers()
     if "ref_doc_types" not in st.session_state:
         st.session_state.ref_doc_types = [
             {"code": doc_type.value, "label": doc_type.label} for doc_type in DocumentType
@@ -169,6 +194,15 @@ def get_counterparty_names() -> list[str]:
     return [item["name"] for item in get_counterparties()]
 
 
+def get_counterparty(name: str) -> dict[str, str] | None:
+    if not name:
+        return None
+    for item in get_counterparties():
+        if item["name"] == name:
+            return item
+    return None
+
+
 def get_loan_accounts() -> list[dict[str, str]]:
     init_references()
     return st.session_state.ref_loan_accounts
@@ -185,6 +219,19 @@ def get_accounts_for_zpif(zpif_name: str) -> list[str]:
 def get_approvers() -> list[tuple[str, str]]:
     init_references()
     return [(item["name"], item["role"]) for item in st.session_state.ref_approvers]
+
+
+def get_primary_approvers() -> list[tuple[str, str]]:
+    return get_approvers()[:MAIN_APPROVER_COUNT]
+
+
+def get_additional_approvers() -> list[tuple[str, str]]:
+    return get_approvers()[MAIN_APPROVER_COUNT:]
+
+
+def get_extra_approvers() -> list[tuple[str, str]]:
+    rows = [(row["name"], row["role"]) for row in DEFAULT_EXTRA_APPROVER_ROWS]
+    return rows[:EXTRA_APPROVER_COUNT]
 
 
 def get_approver_records() -> list[dict[str, str]]:

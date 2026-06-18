@@ -1,14 +1,27 @@
-from datetime import date
+import calendar
+from datetime import date, timedelta
 from pathlib import Path
 
 import streamlit as st
 
-from app.components.approval_status import render_approval_status
+from app.components.approval_status import render_approval_status, send_document_to_approval
 from app.components.pdf_viewer import render_pdf
 from app.services.document_store import get_document, save_document
-from app.services.reference_store import get_approvers, get_document_types, get_funds, resolve_document_type
+from app.services.reference_store import (
+    get_counterparties,
+    get_counterparty,
+    get_counterparty_names,
+    get_document_types,
+    get_extra_approvers,
+    get_funds,
+    get_primary_approvers,
+    get_zpif,
+    get_zpif_names,
+    resolve_document_type,
+)
+from config.reference_data import EXTRA_APPROVER_COUNT, MAIN_APPROVER_COUNT
 from integrations.ollama_recognition import ExtractedFields, check_ollama_available, extract_fields_from_pdf
-from models.document import Document, DocumentStatus
+from models.document import Document, DocumentStatus, SpecDepStatus
 
 
 def _get_selected_document() -> Document | None:
@@ -24,54 +37,128 @@ def _is_fully_approved(doc: Document) -> bool:
     return bool(doc.approvers) and all(a.approved for a in doc.approvers)
 
 
-def _approve_approver(doc: Document, idx: int) -> None:
-    if doc.status == DocumentStatus.NEW:
-        doc.status = DocumentStatus.ON_APPROVAL
-    if hasattr(doc, "approve_approver"):
-        doc.approve_approver(idx)
+def _ensure_document_approvers(doc: Document) -> None:
+    doc.ensure_approvers(
+        get_primary_approvers(),
+        extra_defaults=get_extra_approvers(),
+    )
+
+
+def _toggle_approver(doc: Document, idx: int, *, is_extra: bool = False) -> None:
+    approvers = doc.extra_approvers if is_extra else doc.approvers
+    if idx < 0 or idx >= len(approvers):
+        return
+
+    if approvers[idx].approved:
+        approvers[idx].approved = False
+        if doc.status == DocumentStatus.APPROVED:
+            doc.status = DocumentStatus.ON_APPROVAL
     else:
-        doc.approvers[idx].approved = True
+        if doc.status == DocumentStatus.NEW:
+            doc.status = DocumentStatus.ON_APPROVAL
+        approvers[idx].approved = True
         if _is_fully_approved(doc):
             doc.status = DocumentStatus.APPROVED
+
     save_document(doc)
 
 
+def _render_approver_row(
+    doc: Document,
+    *,
+    approver,
+    idx: int,
+    key_prefix: str,
+    locked: bool,
+    is_extra: bool = False,
+) -> None:
+    icon_col, text_col = st.columns([0.5, 5.5], vertical_alignment="center")
+    with icon_col:
+        if locked:
+            key_suffix = "done" if approver.approved else "idle"
+            st.button(
+                " ",
+                key=f"{key_prefix}_{key_suffix}_{doc.id}_{idx}",
+                disabled=True,
+                type="tertiary",
+            )
+        elif approver.approved:
+            if st.button(
+                " ",
+                key=f"{key_prefix}_done_{doc.id}_{idx}",
+                type="tertiary",
+            ):
+                _toggle_approver(doc, idx, is_extra=is_extra)
+                st.rerun()
+        elif st.button(
+            " ",
+            key=f"{key_prefix}_pending_{doc.id}_{idx}",
+            type="tertiary",
+        ):
+            _toggle_approver(doc, idx, is_extra=is_extra)
+            st.rerun()
+    with text_col:
+        st.markdown(f"**{approver.name}** — _{approver.role}_")
+
+
 def _render_approvers(doc: Document) -> None:
-    doc.ensure_approvers(get_approvers())
+    _ensure_document_approvers(doc)
+
+    real_estate = st.toggle(
+        "Недвижимость",
+        value=doc.real_estate_enabled,
+        key=f"real_estate_{doc.id}",
+        help="Включите для счетов по объектам недвижимости — потребуется доп. согласование сотрудниками ТЦ",
+    )
+    if real_estate != doc.real_estate_enabled:
+        doc.real_estate_enabled = real_estate
+        save_document(doc)
+        st.rerun()
+
     st.subheader("Согласование")
-    render_approval_status(doc)
+    render_approval_status(doc, show_send_button=False)
     st.markdown("")
 
     locked = doc.status == DocumentStatus.SENT_TO_AVANKOR
+    main_approvers = doc.approvers[:MAIN_APPROVER_COUNT]
+    extra_approvers = doc.extra_approvers[:EXTRA_APPROVER_COUNT]
 
-    for idx, approver in enumerate(doc.approvers):
-        icon_col, text_col = st.columns([0.5, 5.5], vertical_alignment="center")
-        with icon_col:
-            if approver.approved:
-                st.button(
-                    " ",
-                    key=f"approve_done_{doc.id}_{idx}",
-                    disabled=True,
-                    type="tertiary",
-                    help="Согласовано",
-                )
-            elif locked:
-                st.button(
-                    " ",
-                    key=f"approve_idle_{doc.id}_{idx}",
-                    disabled=True,
-                    type="tertiary",
-                )
-            elif st.button(
-                " ",
-                key=f"approve_pending_{doc.id}_{idx}",
-                help="Согласовать",
-                type="tertiary",
-            ):
-                _approve_approver(doc, idx)
-                st.rerun()
-        with text_col:
-            st.markdown(f"**{approver.name}** — _{approver.role}_")
+    for idx, approver in enumerate(main_approvers):
+        _render_approver_row(
+            doc,
+            approver=approver,
+            idx=idx,
+            key_prefix="approve",
+            locked=locked,
+        )
+
+    if extra_approvers:
+        st.markdown("")
+        st.markdown("**Доп. согласование**")
+        for idx, approver in enumerate(extra_approvers):
+            _render_approver_row(
+                doc,
+                approver=approver,
+                idx=idx,
+                key_prefix="extra_approve",
+                locked=locked,
+                is_extra=True,
+            )
+
+
+def _selectbox_with_value(
+    label: str,
+    *,
+    options: list[str],
+    current: str,
+    key: str,
+) -> str:
+    if not options:
+        return st.text_input(label, value=current, key=key)
+    if current and current not in options:
+        options = [current, *options]
+    index = options.index(current) if current in options else 0
+    return st.selectbox(label, options=options, index=index, key=key)
 
 
 def _apply_extracted_fields(doc: Document, extracted: ExtractedFields) -> None:
@@ -88,6 +175,29 @@ def _apply_extracted_fields(doc: Document, extracted: ExtractedFields) -> None:
         doc.fields.fund_name = extracted.fund_name
     if extracted.fund_inn:
         doc.fields.fund_inn = extracted.fund_inn
+    if extracted.zpif_name:
+        doc.fields.zpif_name = extracted.zpif_name
+    elif extracted.fund_name:
+        for zpif in get_zpif():
+            if zpif["name"] in extracted.fund_name or extracted.fund_name in zpif["name"]:
+                doc.fields.zpif_name = zpif["name"]
+                break
+
+    for item in get_counterparties():
+        if doc.fields.counterparty_name and item["name"] == doc.fields.counterparty_name:
+            doc.fields.counterparty_inn = item["inn"]
+            break
+
+    for item in get_funds():
+        if doc.fields.fund_name and item["name"] == doc.fields.fund_name:
+            doc.fields.fund_inn = item["inn"]
+            break
+
+    for item in get_zpif():
+        if doc.fields.zpif_name and item["name"] == doc.fields.zpif_name:
+            if not doc.fields.fund_inn:
+                doc.fields.fund_inn = item["inn"]
+            break
     if extracted.amount is not None:
         doc.fields.amount = extracted.amount
     if extracted.period_from:
@@ -142,17 +252,36 @@ def _render_requisites(doc: Document) -> None:
     )
     doc.document_type = resolve_document_type(type_by_label[selected_type])
 
-    funds = get_funds()
-    fund_names = [fund["name"] for fund in funds]
-    if fund_names:
-        current_fund = doc.fields.fund_name if doc.fields.fund_name in fund_names else fund_names[0]
-        doc.fields.fund_name = st.selectbox(
-            "Юр. лицо",
-            options=fund_names,
-            index=fund_names.index(current_fund),
-        )
-    else:
-        doc.fields.fund_name = st.text_input("Юр. лицо", value=doc.fields.fund_name)
+    counterparty_names = get_counterparty_names()
+    doc.fields.counterparty_name = _selectbox_with_value(
+        "Контрагент",
+        options=counterparty_names,
+        current=doc.fields.counterparty_name,
+        key=f"counterparty_{doc.id}",
+    )
+    for item in get_counterparties():
+        if item["name"] == doc.fields.counterparty_name:
+            doc.fields.counterparty_inn = item["inn"]
+            break
+
+    fund_names = [fund["name"] for fund in get_funds()]
+    doc.fields.fund_name = _selectbox_with_value(
+        "Юр. лицо",
+        options=fund_names,
+        current=doc.fields.fund_name,
+        key=f"fund_{doc.id}",
+    )
+    for item in get_funds():
+        if item["name"] == doc.fields.fund_name:
+            doc.fields.fund_inn = item["inn"]
+            break
+
+    doc.fields.zpif_name = _selectbox_with_value(
+        "ЗПИФ",
+        options=get_zpif_names(),
+        current=doc.fields.zpif_name,
+        key=f"zpif_{doc.id}",
+    )
 
     doc.fields.amount = st.number_input(
         "Сумма",
@@ -161,14 +290,9 @@ def _render_requisites(doc: Document) -> None:
         step=0.01,
     )
 
-    doc.fields.counterparty_name = st.text_input(
-        "Контрагент",
-        value=doc.fields.counterparty_name,
-    )
-    doc.fields.counterparty_inn = st.text_input(
-        "ИНН контрагента",
-        value=doc.fields.counterparty_inn,
-    )
+    if doc.fields.counterparty_inn:
+        st.caption(f"ИНН контрагента: {doc.fields.counterparty_inn}")
+
     doc.fields.description = st.text_area(
         "Назначение / описание",
         value=doc.fields.description,
@@ -190,7 +314,41 @@ def _render_requisites(doc: Document) -> None:
             label_visibility="collapsed",
         )
 
+    st.markdown("**Дата оплаты**")
+    st.caption("Планируемая дата оплаты счёта УК ЗПИФ")
+    payment_date_key = f"payment_date_{doc.id}"
+    payment_col1, payment_col2, payment_col3 = st.columns(3)
+    with payment_col1:
+        if st.button("Конец месяца", use_container_width=True, key=f"pay_eom_{doc.id}"):
+            last_day = calendar.monthrange(date.today().year, date.today().month)[1]
+            doc.fields.payment_date = date(date.today().year, date.today().month, last_day)
+            st.session_state[payment_date_key] = doc.fields.payment_date
+            save_document(doc)
+            st.rerun()
+    with payment_col2:
+        if st.button("+7 дней", use_container_width=True, key=f"pay_7d_{doc.id}"):
+            doc.fields.payment_date = date.today() + timedelta(days=7)
+            st.session_state[payment_date_key] = doc.fields.payment_date
+            save_document(doc)
+            st.rerun()
+    with payment_col3:
+        if st.button("Сегодня", use_container_width=True, key=f"pay_today_{doc.id}"):
+            doc.fields.payment_date = date.today()
+            st.session_state[payment_date_key] = doc.fields.payment_date
+            save_document(doc)
+            st.rerun()
+
+    doc.fields.payment_date = st.date_input(
+        "Дата оплаты",
+        value=doc.fields.payment_date,
+        label_visibility="collapsed",
+        key=payment_date_key,
+    )
+
     if st.button("Сохранить", use_container_width=True):
+        if doc.status in (DocumentStatus.NEW, DocumentStatus.REJECTED):
+            doc.status = DocumentStatus.ON_APPROVAL
+        doc.touch()
         save_document(doc)
         st.success("Сохранено")
 
@@ -204,7 +362,10 @@ def _inject_page_styles() -> None:
         }
         div[class*="st-key-approve_done_"],
         div[class*="st-key-approve_pending_"],
-        div[class*="st-key-approve_idle_"] {
+        div[class*="st-key-approve_idle_"],
+        div[class*="st-key-extra_approve_done_"],
+        div[class*="st-key-extra_approve_pending_"],
+        div[class*="st-key-extra_approve_idle_"] {
             width: 100% !important;
             height: 32px !important;
             min-height: 32px !important;
@@ -218,9 +379,15 @@ def _inject_page_styles() -> None:
         div[class*="st-key-approve_done_"] [data-testid="stElementContainer"],
         div[class*="st-key-approve_pending_"] [data-testid="stElementContainer"],
         div[class*="st-key-approve_idle_"] [data-testid="stElementContainer"],
+        div[class*="st-key-extra_approve_done_"] [data-testid="stElementContainer"],
+        div[class*="st-key-extra_approve_pending_"] [data-testid="stElementContainer"],
+        div[class*="st-key-extra_approve_idle_"] [data-testid="stElementContainer"],
         div[class*="st-key-approve_done_"] [data-testid="stVerticalBlock"],
         div[class*="st-key-approve_pending_"] [data-testid="stVerticalBlock"],
-        div[class*="st-key-approve_idle_"] [data-testid="stVerticalBlock"] {
+        div[class*="st-key-approve_idle_"] [data-testid="stVerticalBlock"],
+        div[class*="st-key-extra_approve_done_"] [data-testid="stVerticalBlock"],
+        div[class*="st-key-extra_approve_pending_"] [data-testid="stVerticalBlock"],
+        div[class*="st-key-extra_approve_idle_"] [data-testid="stVerticalBlock"] {
             padding: 0 !important;
             margin: 0 !important;
             gap: 0 !important;
@@ -232,7 +399,10 @@ def _inject_page_styles() -> None:
         }
         div[class*="st-key-approve_done_"] button,
         div[class*="st-key-approve_pending_"] button,
-        div[class*="st-key-approve_idle_"] button {
+        div[class*="st-key-approve_idle_"] button,
+        div[class*="st-key-extra_approve_done_"] button,
+        div[class*="st-key-extra_approve_pending_"] button,
+        div[class*="st-key-extra_approve_idle_"] button {
             width: 20px !important;
             height: 20px !important;
             min-width: 20px !important;
@@ -252,30 +422,66 @@ def _inject_page_styles() -> None:
         }
         div[class*="st-key-approve_done_"] button {
             background: #16a34a !important;
-            cursor: default !important;
+            cursor: pointer !important;
+        }
+        div[class*="st-key-extra_approve_done_"] button {
+            background: #16a34a !important;
+            cursor: pointer !important;
+        }
+        div[class*="st-key-approve_done_"] button:hover,
+        div[class*="st-key-extra_approve_done_"] button:hover {
+            background: #15803d !important;
         }
         div[class*="st-key-approve_pending_"] button {
             background: #9ca3af !important;
         }
+        div[class*="st-key-extra_approve_pending_"] button {
+            background: #9ca3af !important;
+        }
         div[class*="st-key-approve_pending_"] button:hover {
+            background: #6b7280 !important;
+        }
+        div[class*="st-key-extra_approve_pending_"] button:hover {
             background: #6b7280 !important;
         }
         div[class*="st-key-approve_idle_"] button {
             background: #9ca3af !important;
             cursor: default !important;
         }
+        div[class*="st-key-extra_approve_idle_"] button {
+            background: #9ca3af !important;
+            cursor: default !important;
+        }
         div[class*="st-key-approve_done_"] button p,
         div[class*="st-key-approve_pending_"] button p,
-        div[class*="st-key-approve_idle_"] button p {
+        div[class*="st-key-approve_idle_"] button p,
+        div[class*="st-key-extra_approve_done_"] button p,
+        div[class*="st-key-extra_approve_pending_"] button p,
+        div[class*="st-key-extra_approve_idle_"] button p {
             display: none !important;
         }
-        div[class*="st-key-send_approval_"] button {
+        div[class*="st-key-send_approval_"] button,
+        div[class*="st-key-header_approve_"] button {
             font-size: 0.78rem !important;
             min-height: 1.85rem !important;
             padding: 0.2rem 0.5rem !important;
         }
-        div[class*="st-key-send_approval_"] button p {
+        div[class*="st-key-send_approval_"] button p,
+        div[class*="st-key-header_approve_"] button p {
             font-size: 0.78rem !important;
+        }
+        div[class*="st-key-header_approve_"] {
+            display: flex !important;
+            justify-content: flex-start !important;
+            align-items: center !important;
+        }
+        div[class*="st-key-header_approve_"] [data-testid="stElementContainer"] {
+            width: auto !important;
+            margin-left: 0 !important;
+        }
+        div[class*="st-key-header_approve_"] button {
+            width: auto !important;
+            white-space: nowrap !important;
         }
         .approval-status-badge {
             padding: 0.35rem 0.5rem;
@@ -290,10 +496,48 @@ def _inject_page_styles() -> None:
     )
 
 
+def _current_counterparty_name(doc: Document) -> str:
+    return st.session_state.get(f"counterparty_{doc.id}", doc.fields.counterparty_name) or ""
+
+
+def _render_counterparty_comments(doc: Document) -> None:
+    counterparty_name = _current_counterparty_name(doc)
+    counterparty = get_counterparty(counterparty_name)
+    comment = counterparty.get("comment", "") if counterparty else ""
+    lawyer_comment = counterparty.get("lawyer_comment", "") if counterparty else ""
+    st.text_area(
+        "Комментарий",
+        value=comment,
+        height=68,
+        disabled=True,
+        key=f"cp_comment_{doc.id}_{counterparty_name}",
+    )
+    st.text_area(
+        "Комментарий юриста",
+        value=lawyer_comment,
+        height=68,
+        disabled=True,
+        key=f"cp_lawyer_comment_{doc.id}_{counterparty_name}",
+    )
+
+
 def _render_page_header(doc: Document) -> None:
     filename = Path(doc.pdf_filename).name if doc.pdf_filename else "—"
-    st.subheader("Обработка")
-    st.caption(filename)
+    title_col, comments_col = st.columns([4, 3], vertical_alignment="top")
+    with title_col:
+        st.subheader("Обработка")
+        st.caption(filename)
+        can_send = doc.status in (DocumentStatus.NEW, DocumentStatus.REJECTED)
+        if st.button(
+            "Согласовать",
+            key=f"header_approve_{doc.id}",
+            type="primary",
+            disabled=not can_send,
+        ):
+            send_document_to_approval(doc)
+            st.rerun()
+    with comments_col:
+        _render_counterparty_comments(doc)
 
 
 def render() -> None:
@@ -305,7 +549,7 @@ def render() -> None:
         st.warning("Выберите документ на странице «Документы» и нажмите «Обработать».")
         return
 
-    doc.ensure_approvers(get_approvers())
+    _ensure_document_approvers(doc)
 
     _render_page_header(doc)
 
@@ -339,3 +583,18 @@ def render() -> None:
 
         if avankor_sent:
             st.caption("Документ уже отправлен в Аванкор.")
+
+        spec_dep_sent = doc.spec_dep_status == SpecDepStatus.SENT
+        if st.button(
+            "Отправить в Спец.Деп",
+            type="primary" if all_approved and not spec_dep_sent else "secondary",
+            disabled=not all_approved or spec_dep_sent,
+            use_container_width=True,
+        ):
+            doc.spec_dep_status = SpecDepStatus.SENT
+            save_document(doc)
+            st.success("Документ отправлен в Спец.Деп (демо).")
+            st.rerun()
+
+        if spec_dep_sent:
+            st.caption("Документ уже отправлен в Спец.Деп.")

@@ -10,7 +10,7 @@ import streamlit as st
 from app.auth import logout_button, require_auth
 from app.branding import configure_app_branding
 from app.services.reference_store import init_references
-from app.views import deposits, directories, document, inbox, income, loans
+from app.views import deposits, directories, document, inbox, income, loans, payment_calendar
 from app.views import settings as settings_page
 from config.settings import settings
 from db import init_db
@@ -68,6 +68,12 @@ pg = st.navigation(
     [
         st.Page(inbox.render, title="Документы", icon="📄", default=True, url_path="inbox"),
         document_page,
+        st.Page(
+            payment_calendar.render,
+            title="Платежный календарь",
+            icon="📅",
+            url_path="payment-calendar",
+        ),
         st.Page(directories.render, title="Справочники", icon="📚", url_path="directories"),
         st.Page(loans.render, title="Займы", icon="💰", url_path="loans"),
         st.Page(deposits.render, title="Депозиты", icon="🏦", url_path="deposits"),

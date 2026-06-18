@@ -19,11 +19,13 @@ class DocumentRow(Base):
 
     fund_name: Mapped[str] = mapped_column(Text, default="")
     fund_inn: Mapped[str] = mapped_column(String(12), default="")
+    zpif_name: Mapped[str] = mapped_column(Text, default="")
     counterparty_name: Mapped[str] = mapped_column(Text, default="")
     counterparty_inn: Mapped[str] = mapped_column(String(12), default="")
     amount: Mapped[float | None] = mapped_column(Float)
     period_from: Mapped[datetime | None] = mapped_column(Date)
     period_to: Mapped[datetime | None] = mapped_column(Date)
+    payment_date: Mapped[datetime | None] = mapped_column(Date)
     description: Mapped[str] = mapped_column(Text, default="")
 
     diadoc_box_id: Mapped[str | None] = mapped_column(String(128))
@@ -31,6 +33,8 @@ class DocumentRow(Base):
     diadoc_entity_id: Mapped[str | None] = mapped_column(String(64))
 
     bank_client_status: Mapped[str] = mapped_column(String(32), default="not_uploaded")
+    spec_dep_status: Mapped[str] = mapped_column(String(32), default="not_sent")
+    real_estate_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     pdf_filename: Mapped[str | None] = mapped_column(Text)
 
     received_at: Mapped[datetime] = mapped_column(
@@ -62,6 +66,7 @@ class DocumentApproverRow(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[str] = mapped_column(String(255), default="")
     approved: Mapped[bool] = mapped_column(Boolean, default=False)
+    section: Mapped[str] = mapped_column(String(16), default="main")
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
 
     document: Mapped[DocumentRow] = relationship(back_populates="approvers")
