@@ -155,6 +155,35 @@ def _date_header_label(payment_date: date | None, today: date) -> tuple[str, str
     return label, urgency
 
 
+def _normalize_date_selection(value: date | tuple[date, ...] | list[date] | None) -> tuple[date | None, date | None]:
+    if value is None:
+        return None, None
+    if isinstance(value, tuple):
+        if not value:
+            return None, None
+        if len(value) == 1:
+            return value[0], value[0]
+        start, end = value[0], value[-1]
+        if start > end:
+            start, end = end, start
+        return start, end
+    return value, value
+
+
+def _payment_date_in_range(
+    payment_date: date | None,
+    *,
+    range_start: date | None,
+    range_end: date | None,
+    include_unscheduled: bool,
+) -> bool:
+    if payment_date is None:
+        return include_unscheduled
+    if range_start is None or range_end is None:
+        return False
+    return range_start <= payment_date <= range_end
+
+
 def render_payment_calendar() -> None:
     _inject_calendar_styles()
     today = date.today()
@@ -169,11 +198,12 @@ def render_payment_calendar() -> None:
         {doc.fields.zpif_name or doc.fields.fund_name for doc in pending if doc.fields.zpif_name or doc.fields.fund_name}
     )
 
-    filter_col1, filter_col2, filter_col3 = st.columns([2, 2, 3])
+    preset_options = ["Все", "Просрочено", "На этой неделе", "В этом месяце", "Без даты", "Календарь"]
+    filter_col1, filter_col2 = st.columns([2, 2])
     with filter_col1:
         view_filter = st.selectbox(
             "Период",
-            options=["Все", "Просрочено", "На этой неделе", "В этом месяце", "Без даты"],
+            options=preset_options,
             index=0,
         )
     with filter_col2:
@@ -182,10 +212,54 @@ def render_payment_calendar() -> None:
             options=["Все"] + zpif_names,
             index=0,
         )
-    with filter_col3:
+
+    calendar_mode = "single"
+    calendar_start: date | None = None
+    calendar_end: date | None = None
+    include_unscheduled = False
+
+    if view_filter == "Календарь":
+        cal_col1, cal_col2 = st.columns([2, 3])
+        with cal_col1:
+            calendar_mode = st.radio(
+                "Тип выбора",
+                options=["Одна дата", "Диапазон"],
+                horizontal=True,
+                key="pay_cal_mode",
+            )
+        with cal_col2:
+            include_unscheduled = st.checkbox(
+                "Показывать документы без даты оплаты",
+                value=False,
+                key="pay_cal_include_unscheduled",
+            )
+
+        if calendar_mode == "Одна дата":
+            selected = st.date_input(
+                "Дата оплаты",
+                value=today,
+                key="pay_cal_single_date",
+            )
+            calendar_start, calendar_end = _normalize_date_selection(selected)
+        else:
+            selected = st.date_input(
+                "Период оплаты",
+                value=(month_start, month_end),
+                key="pay_cal_date_range",
+            )
+            calendar_start, calendar_end = _normalize_date_selection(selected)
+
+        if calendar_start and calendar_end:
+            if calendar_start == calendar_end:
+                st.caption(f"Выбрана дата: {_format_date(calendar_start)}")
+            else:
+                st.caption(
+                    f"Выбран период: {_format_date(calendar_start)} — {_format_date(calendar_end)}"
+                )
+    else:
         st.caption(
             "УК ЗПИФ может переносить оплату счетов — укажите дату на странице «Обработка» "
-            "или в списке «Документы»."
+            "или в списке «Документы». Для произвольного периода выберите «Календарь»."
         )
 
     def _matches_filters(doc: Document) -> bool:
@@ -193,6 +267,13 @@ def render_payment_calendar() -> None:
         zpif = doc.fields.zpif_name or doc.fields.fund_name
         if zpif_filter != "Все" and zpif != zpif_filter:
             return False
+        if view_filter == "Календарь":
+            return _payment_date_in_range(
+                payment_date,
+                range_start=calendar_start,
+                range_end=calendar_end,
+                include_unscheduled=include_unscheduled,
+            )
         if view_filter == "Просрочено":
             return payment_date is not None and payment_date < today
         if view_filter == "На этой неделе":

@@ -315,7 +315,7 @@ def _render_requisites(doc: Document) -> None:
         )
 
     st.markdown("**Дата оплаты**")
-    st.caption("Планируемая дата оплаты счёта УК ЗПИФ")
+    st.caption("Планируемая дата оплаты счёта")
     payment_date_key = f"payment_date_{doc.id}"
     payment_col1, payment_col2, payment_col3 = st.columns(3)
     with payment_col1:

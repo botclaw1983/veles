@@ -1,4 +1,6 @@
 from pathlib import Path
+import calendar
+from datetime import date
 
 import streamlit as st
 
@@ -15,6 +17,7 @@ from models.document import BankClientStatus, Document, DocumentStatus, SpecDepS
 
 _SORTABLE_COLUMNS: list[tuple[str, str]] = [
     ("filename", "Файл"),
+    ("received_at", "Получен"),
     ("zpif", "ЗПИФ"),
     ("counterparty", "Контрагент"),
     ("document_type", "Тип"),
@@ -47,8 +50,12 @@ def _doc_filename(doc: Document) -> str:
     return Path(doc.pdf_filename).name.lower()
 
 
+def _doc_zpif_name(doc: Document) -> str:
+    return doc.fields.zpif_name or doc.fields.fund_name or ""
+
+
 def _doc_zpif(doc: Document) -> str:
-    return (doc.fields.zpif_name or doc.fields.fund_name or "").lower()
+    return _doc_zpif_name(doc).lower()
 
 
 def _sort_key(doc: Document, field: str):
@@ -150,18 +157,26 @@ def _inject_table_styles() -> None:
             white-space: nowrap;
         }
         div[class*="st-key-spec_dep_"],
+        div[class*="st-key-avankor_"],
+        div[class*="st-key-bank_client_"],
         div[class*="st-key-process_"] {
             width: fit-content !important;
             max-width: 100% !important;
         }
         div[class*="st-key-spec_dep_"] [data-testid="stElementContainer"],
+        div[class*="st-key-avankor_"] [data-testid="stElementContainer"],
+        div[class*="st-key-bank_client_"] [data-testid="stElementContainer"],
         div[class*="st-key-process_"] [data-testid="stElementContainer"],
         div[class*="st-key-spec_dep_"] [data-testid="stVerticalBlock"],
+        div[class*="st-key-avankor_"] [data-testid="stVerticalBlock"],
+        div[class*="st-key-bank_client_"] [data-testid="stVerticalBlock"],
         div[class*="st-key-process_"] [data-testid="stVerticalBlock"] {
             width: fit-content !important;
             max-width: 100% !important;
         }
         div[class*="st-key-spec_dep_"] button,
+        div[class*="st-key-avankor_"] button,
+        div[class*="st-key-bank_client_"] button,
         div[class*="st-key-process_"] button {
             font-size: 0.75rem !important;
             font-weight: 600 !important;
@@ -174,6 +189,8 @@ def _inject_table_styles() -> None:
             width: auto !important;
         }
         div[class*="st-key-spec_dep_"] button p,
+        div[class*="st-key-avankor_"] button p,
+        div[class*="st-key-bank_client_"] button p,
         div[class*="st-key-process_"] button p {
             font-size: 0.75rem !important;
             font-weight: 600 !important;
@@ -211,6 +228,27 @@ def _inject_table_styles() -> None:
             font-weight: 700 !important;
             white-space: nowrap !important;
             line-height: 1.2 !important;
+        }
+        div[data-testid="stHorizontalBlock"]:has(div[class*="st-key-inbox_filter_"]) {
+            align-items: flex-end !important;
+        }
+        div[class*="st-key-inbox_filter_zpif"] [data-testid="stSelectbox"] > div {
+            min-width: 0 !important;
+        }
+        div[class*="st-key-inbox_filter_zpif"] [data-baseweb="select"] > div {
+            font-size: 0.82rem !important;
+        }
+        div[class*="st-key-inbox_filter_counterparty"] [data-baseweb="select"] > div {
+            font-size: 0.82rem !important;
+        }
+        div[class*="st-key-inbox_filter_payment_popover"] button,
+        div[class*="st-key-inbox_filter_received_popover"] button {
+            font-size: 0.82rem !important;
+            min-height: 2.4rem !important;
+            padding: 0.35rem 0.65rem !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
         }
         </style>
         """,
@@ -274,6 +312,24 @@ def _spec_dep_sent_badge() -> str:
     )
 
 
+def _render_avankor_cell(col, doc: Document) -> None:
+    if doc.status == DocumentStatus.SENT_TO_AVANKOR:
+        col.markdown(_avankor_badge(doc.status), unsafe_allow_html=True)
+    elif col.button("Отправить", key=f"avankor_{doc.id}"):
+        doc.status = DocumentStatus.SENT_TO_AVANKOR
+        save_document(doc)
+        st.rerun()
+
+
+def _render_bank_client_cell(col, doc: Document) -> None:
+    if doc.bank_client_status in (BankClientStatus.UPLOADED, BankClientStatus.PAID):
+        col.markdown(_bank_client_badge(doc.bank_client_status), unsafe_allow_html=True)
+    elif col.button("Отправить", key=f"bank_client_{doc.id}"):
+        doc.bank_client_status = BankClientStatus.UPLOADED
+        save_document(doc)
+        st.rerun()
+
+
 def _render_spec_dep_cell(col, doc: Document) -> None:
     if doc.spec_dep_status == SpecDepStatus.SENT:
         col.markdown(_spec_dep_sent_badge(), unsafe_allow_html=True)
@@ -287,6 +343,261 @@ def _format_payment_date(value) -> str:
     if value is None:
         return "—"
     return value.strftime("%d.%m.%Y")
+
+
+def _format_received_at(value) -> str:
+    if value is None:
+        return "—"
+    return value.strftime("%d.%m.%Y")
+
+
+def _normalize_date_selection(
+    value: date | tuple[date, ...] | list[date] | None,
+) -> tuple[date | None, date | None]:
+    if value is None:
+        return None, None
+    if isinstance(value, tuple):
+        if not value:
+            return None, None
+        if len(value) == 1:
+            return value[0], value[0]
+        start, end = value[0], value[-1]
+        if start > end:
+            start, end = end, start
+        return start, end
+    return value, value
+
+
+def _end_of_month(day: date) -> date:
+    last_day = calendar.monthrange(day.year, day.month)[1]
+    return date(day.year, day.month, last_day)
+
+
+def _doc_received_date(doc: Document) -> date | None:
+    if doc.received_at is None:
+        return None
+    return doc.received_at.date()
+
+
+def _date_in_range(
+    value: date | None,
+    *,
+    range_start: date | None,
+    range_end: date | None,
+) -> bool:
+    if value is None or range_start is None or range_end is None:
+        return False
+    return range_start <= value <= range_end
+
+
+def _collect_filter_options(documents: list[Document]) -> tuple[list[str], list[str]]:
+    zpif_names = sorted({_doc_zpif_name(doc) for doc in documents if _doc_zpif_name(doc)})
+    counterparty_names = sorted(
+        {doc.fields.counterparty_name for doc in documents if doc.fields.counterparty_name}
+    )
+    return zpif_names, counterparty_names
+
+
+def _date_filter_button_label(
+    mode: str,
+    start: date | None,
+    end: date | None,
+) -> str:
+    if mode == "Все" or start is None or end is None:
+        return "Все"
+    if start == end:
+        return start.strftime("%d.%m.%Y")
+    if start.year == end.year:
+        return f"{start.strftime('%d.%m')}–{end.strftime('%d.%m.%Y')}"
+    return f"{start.strftime('%d.%m.%Y')}–{end.strftime('%d.%m.%Y')}"
+
+
+def _read_date_filter_state(
+    key_prefix: str,
+    *,
+    today: date,
+    month_start: date,
+    month_end: date,
+) -> tuple[str, date | None, date | None]:
+    mode_key = f"{key_prefix}_mode"
+    mode = st.session_state.get(mode_key, "Все")
+    if mode == "Одна дата":
+        selected = st.session_state.get(f"{key_prefix}_single", today)
+        return mode, *_normalize_date_selection(selected)
+    if mode == "Диапазон":
+        selected = st.session_state.get(
+            f"{key_prefix}_range",
+            (month_start, month_end),
+        )
+        return mode, *_normalize_date_selection(selected)
+    return "Все", None, None
+
+
+def _reset_date_filter(key_prefix: str) -> None:
+    for suffix in ("_mode", "_single", "_range"):
+        st.session_state.pop(f"{key_prefix}{suffix}", None)
+
+
+def _render_date_filter_popover(
+    label: str,
+    *,
+    key_prefix: str,
+    today: date,
+    month_start: date,
+    month_end: date,
+) -> tuple[str, date | None, date | None]:
+    mode_key = f"{key_prefix}_mode"
+    mode_options = ["Все", "Одна дата", "Диапазон"]
+
+    mode, start, end = _read_date_filter_state(
+        key_prefix,
+        today=today,
+        month_start=month_start,
+        month_end=month_end,
+    )
+    button_label = _date_filter_button_label(mode, start, end)
+
+    with st.popover(button_label, use_container_width=True):
+        st.markdown(f"**{label}**")
+        current_mode = st.session_state.get(mode_key, "Все")
+        st.radio(
+            "Тип выбора",
+            options=mode_options,
+            index=mode_options.index(current_mode) if current_mode in mode_options else 0,
+            horizontal=True,
+            key=mode_key,
+        )
+        selected_mode = st.session_state[mode_key]
+        if selected_mode == "Одна дата":
+            st.date_input(
+                "Дата",
+                value=start or today,
+                key=f"{key_prefix}_single",
+            )
+        elif selected_mode == "Диапазон":
+            default_range = (start, end) if start and end else (month_start, month_end)
+            st.date_input(
+                "Период",
+                value=default_range,
+                key=f"{key_prefix}_range",
+            )
+        if selected_mode != "Все":
+            st.button(
+                "Сбросить",
+                key=f"{key_prefix}_reset",
+                use_container_width=True,
+                on_click=_reset_date_filter,
+                args=(key_prefix,),
+            )
+
+    return _read_date_filter_state(
+        key_prefix,
+        today=today,
+        month_start=month_start,
+        month_end=month_end,
+    )
+
+
+def _apply_document_filters(
+    documents: list[Document],
+    *,
+    zpif_filter: str,
+    counterparty_filter: str,
+    payment_mode: str,
+    payment_start: date | None,
+    payment_end: date | None,
+    received_mode: str,
+    received_start: date | None,
+    received_end: date | None,
+) -> list[Document]:
+    filtered = documents
+    if zpif_filter != "Все":
+        filtered = [doc for doc in filtered if _doc_zpif_name(doc) == zpif_filter]
+    if counterparty_filter != "Все":
+        filtered = [
+            doc for doc in filtered if doc.fields.counterparty_name == counterparty_filter
+        ]
+    if payment_mode != "Все":
+        filtered = [
+            doc
+            for doc in filtered
+            if _date_in_range(
+                doc.fields.payment_date,
+                range_start=payment_start,
+                range_end=payment_end,
+            )
+        ]
+    if received_mode != "Все":
+        filtered = [
+            doc
+            for doc in filtered
+            if _date_in_range(
+                _doc_received_date(doc),
+                range_start=received_start,
+                range_end=received_end,
+            )
+        ]
+    return filtered
+
+
+def _render_document_filters(documents: list[Document]) -> list[Document]:
+    today = date.today()
+    month_start = date(today.year, today.month, 1)
+    month_end = _end_of_month(today)
+    zpif_names, counterparty_names = _collect_filter_options(documents)
+
+    filter_col1, filter_col2, filter_col3, filter_col4 = st.columns(
+        [0.85, 1.35, 1.1, 1.1],
+        gap="small",
+    )
+    with filter_col1:
+        zpif_filter = st.selectbox(
+            "ЗПИФ",
+            options=["Все", *zpif_names],
+            index=0,
+            key="inbox_filter_zpif",
+        )
+    with filter_col2:
+        counterparty_filter = st.selectbox(
+            "Контрагент",
+            options=["Все", *counterparty_names],
+            index=0,
+            key="inbox_filter_counterparty",
+        )
+    with filter_col3:
+        st.caption("Дата оплаты")
+        with st.container(key="inbox_filter_payment_popover"):
+            payment_mode, payment_start, payment_end = _render_date_filter_popover(
+                "Дата оплаты",
+                key_prefix="inbox_filter_payment",
+                today=today,
+                month_start=month_start,
+                month_end=month_end,
+            )
+    with filter_col4:
+        st.caption("Получен")
+        with st.container(key="inbox_filter_received_popover"):
+            received_mode, received_start, received_end = _render_date_filter_popover(
+                "Получен",
+                key_prefix="inbox_filter_received",
+                today=today,
+                month_start=month_start,
+                month_end=month_end,
+            )
+
+    filtered = _apply_document_filters(
+        documents,
+        zpif_filter=zpif_filter,
+        counterparty_filter=counterparty_filter,
+        payment_mode=payment_mode,
+        payment_start=payment_start,
+        payment_end=payment_end,
+        received_mode=received_mode,
+        received_start=received_start,
+        received_end=received_end,
+    )
+    st.caption(f"Показано документов: {len(filtered)} из {len(documents)}")
+    return filtered
 
 
 def render() -> None:
@@ -368,33 +679,39 @@ def render() -> None:
         return
 
     st.markdown("---")
+    filtered_documents = _render_document_filters(documents)
+    if not filtered_documents:
+        st.info("Нет документов по выбранным фильтрам.")
+        return
+
     _init_inbox_sort()
-    documents = _sort_documents(
-        documents,
+    filtered_documents = _sort_documents(
+        filtered_documents,
         sort_by=st.session_state.inbox_sort_by,
         ascending=st.session_state.inbox_sort_asc,
     )
 
-    column_weights = [1.6, 1.1, 1.2, 0.7, 0.8, 0.9, 1.0, 0.9, 0.9, 0.9, 0.8]
+    column_weights = [1.5, 0.8, 1.0, 1.1, 0.7, 0.8, 0.9, 1.0, 0.9, 0.9, 0.9, 0.8]
     header = st.columns(column_weights)
     for index, (field, label) in enumerate(_SORTABLE_COLUMNS):
         _render_sortable_header(header[index], field, label)
-    header[10].markdown("**Действие**")
+    header[11].markdown("**Действие**")
 
-    for doc in documents:
+    for doc in filtered_documents:
         cols = st.columns(column_weights)
         filename = Path(doc.pdf_filename).name if doc.pdf_filename else "—"
         if doc.diadoc_message_id:
             filename = f"{filename} · Diadoc"
         cols[0].write(filename)
-        cols[1].write(doc.fields.zpif_name or doc.fields.fund_name or "—")
-        cols[2].write(doc.fields.counterparty_name or "—")
-        cols[3].write(doc.document_type.label if doc.document_type else "—")
-        cols[4].write(f"{doc.fields.amount:,.2f}" if doc.fields.amount else "—")
-        cols[5].write(_format_payment_date(doc.fields.payment_date))
-        cols[6].markdown(_approval_badge(doc.status), unsafe_allow_html=True)
-        cols[7].markdown(_avankor_badge(doc.status), unsafe_allow_html=True)
-        _render_spec_dep_cell(cols[8], doc)
-        cols[9].markdown(_bank_client_badge(doc.bank_client_status), unsafe_allow_html=True)
-        if cols[10].button("Обработать", key=f"process_{doc.id}"):
+        cols[1].write(_format_received_at(doc.received_at))
+        cols[2].write(doc.fields.zpif_name or doc.fields.fund_name or "—")
+        cols[3].write(doc.fields.counterparty_name or "—")
+        cols[4].write(doc.document_type.label if doc.document_type else "—")
+        cols[5].write(f"{doc.fields.amount:,.2f}" if doc.fields.amount else "—")
+        cols[6].write(_format_payment_date(doc.fields.payment_date))
+        cols[7].markdown(_approval_badge(doc.status), unsafe_allow_html=True)
+        _render_avankor_cell(cols[8], doc)
+        _render_spec_dep_cell(cols[9], doc)
+        _render_bank_client_cell(cols[10], doc)
+        if cols[11].button("Обработать", key=f"process_{doc.id}"):
             _open_document(doc.id)

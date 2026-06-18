@@ -458,6 +458,16 @@ def all_income_approvers_approved(income: dict) -> bool:
     return bool(approvals) and all(approvals.values())
 
 
+def _is_individual_inn(inn: str) -> bool:
+    return len(inn.strip()) == 12
+
+
+def _calculate_ndfl(amount: float, inn: str) -> float:
+    if not _is_individual_inn(inn):
+        return 0.0
+    return round(amount * 0.13, 2)
+
+
 def calculate_income_distribution(zpif_name: str, total_amount: float) -> list[dict]:
     shareholders = get_shareholders_for_zpif(zpif_name)
     if not shareholders or total_amount <= 0:
@@ -479,12 +489,15 @@ def calculate_income_distribution(zpif_name: str, total_amount: float) -> list[d
             share_pct = base_share
             distributed += amount
 
+        ndfl = _calculate_ndfl(amount, shareholder["inn"])
         rows.append(
             {
                 "name": shareholder["name"],
                 "inn": shareholder["inn"],
                 "share_pct": share_pct,
                 "amount": amount,
+                "ndfl": ndfl,
+                "net_payable": round(amount - ndfl, 2),
             }
         )
 
