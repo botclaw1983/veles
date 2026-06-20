@@ -98,6 +98,63 @@ DEFAULT_COUNTERPARTIES: list[dict[str, str]] = [
     },
 ]
 
+DEFAULT_COUNTERPARTY_CONTRACTS: list[dict[str, str]] = [
+    {
+        "id": "bitrix-124",
+        "counterparty_name": "ООО «1С-Битрикс»",
+        "counterparty_inn": "7717580990",
+        "number": "ДУ-124/2024",
+        "date": "15.05.2024",
+        "title": "Договор оказания услуг",
+        "pdf_filename": "dogovor_1c_bitrix_124.pdf",
+    },
+    {
+        "id": "bitrix-089",
+        "counterparty_name": "ООО «1С-Битрикс»",
+        "counterparty_inn": "7717580990",
+        "number": "ДУ-089/2025",
+        "date": "10.01.2025",
+        "title": "Дополнительное соглашение № 1",
+        "pdf_filename": "dogovor_1c_bitrix_089.pdf",
+    },
+    {
+        "id": "pallio-112",
+        "counterparty_name": "ООО «ПАЛЛИОМЕД»",
+        "counterparty_inn": "7728456123",
+        "number": "ПМ-112/2023",
+        "date": "20.03.2023",
+        "title": "Договор поставки",
+        "pdf_filename": "dogovor_palliomed_112.pdf",
+    },
+    {
+        "id": "firma1-015",
+        "counterparty_name": "ООО «ФИРМА 1»",
+        "counterparty_inn": "7701234567",
+        "number": "Ф1-015/2024",
+        "date": "01.02.2024",
+        "title": "Договор аренды",
+        "pdf_filename": "dogovor_firma1_015.pdf",
+    },
+    {
+        "id": "romashka-007",
+        "counterparty_name": "ООО «Ромашка»",
+        "counterparty_inn": "7710123456",
+        "number": "РМ-007/2024",
+        "date": "12.04.2024",
+        "title": "Договор оказания услуг",
+        "pdf_filename": "dogovor_romashka_007.pdf",
+    },
+    {
+        "id": "energo-033",
+        "counterparty_name": "АО «Энергосервис»",
+        "counterparty_inn": "7720987654",
+        "number": "ЭС-033/2023",
+        "date": "05.11.2023",
+        "title": "Договор энергоснабжения",
+        "pdf_filename": "dogovor_energo_033.pdf",
+    },
+]
+
 MAIN_APPROVER_COUNT = 6
 EXTRA_APPROVER_COUNT = 2
 
@@ -311,5 +368,40 @@ DEFAULT_DEPOSITS_HISTORY: list[dict] = [
         "recipient": "АО «Альфа-Банк»",
         "amount": 1_800_000.00,
         "status": "on_approval",
+    },
+]
+
+DEFAULT_TENANTS: list[dict] = [
+    {
+        "id": "tenant-demo-1",
+        "name": "ООО «ФИРМА 1»",
+        "inn": "7701234567",
+        "kpp": "770101001",
+        "ogrn": "1027700132195",
+        "legal_address": "123056, г. Москва, ул. Гашека, д. 6",
+        "bank_account": "40702810400000001234",
+        "bank_name": "ПАО Сбербанк",
+        "bic": "044525225",
+        "rent_amount": 185_000.0,
+        "variable_electricity": True,
+        "variable_water": True,
+        "repair_conditions": True,
+        "repair_note": "Капитальный ремонт — арендодатель; текущий — арендатор",
+    },
+    {
+        "id": "tenant-demo-2",
+        "name": "ООО «Ромашка»",
+        "inn": "7710123456",
+        "kpp": "771001001",
+        "ogrn": "1027700198765",
+        "legal_address": "119021, г. Москва, ул. Тимура Фрунзе, д. 11",
+        "bank_account": "40702810900000005678",
+        "bank_name": "ПАО «ВТБ»",
+        "bic": "044525187",
+        "rent_amount": 92_500.0,
+        "variable_electricity": True,
+        "variable_water": False,
+        "repair_conditions": False,
+        "repair_note": "",
     },
 ]

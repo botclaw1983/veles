@@ -13,6 +13,7 @@ from integrations.diadoc import (
 )
 from integrations.local_pdf import fetch_documents_from_pdf_docs
 from app.services.document_store import add_documents, list_documents, save_document
+from config.reference_data import EXTRA_APPROVER_COUNT, MAIN_APPROVER_COUNT
 from models.document import BankClientStatus, Document, DocumentStatus, SpecDepStatus
 
 _SORTABLE_COLUMNS: list[tuple[str, str]] = [
@@ -149,27 +150,81 @@ def _inject_table_styles() -> None:
         """
         <style>
         .doc-table-badge {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
             padding: 0.25rem 0.5rem;
             border-radius: 0.4rem;
             font-weight: 600;
             font-size: 0.75rem;
+            line-height: 1.2;
             white-space: nowrap;
+            min-height: 1.625rem;
+            box-sizing: border-box;
+        }
+        .approval-progress {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.35rem;
+            padding-right: 0.65rem;
+            margin-right: 0.35rem;
+            padding-bottom: 0.15rem;
+        }
+        .approval-dots {
+            display: flex;
+            gap: 0.28rem;
+            align-items: center;
+        }
+        .approval-dot {
+            width: 0.55rem;
+            height: 0.55rem;
+            border-radius: 50%;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+        .approval-dot.pending {
+            background: #d1d5db;
+        }
+        .approval-dot.approved {
+            background: #16a34a;
+        }
+        .approval-dots-separator {
+            color: #9ca3af;
+            font-size: 0.7rem;
+            line-height: 1;
+            margin: 0 0.2rem;
+            user-select: none;
         }
         div[class*="st-key-spec_dep_"],
         div[class*="st-key-avankor_"],
         div[class*="st-key-bank_client_"],
+        div[class*="st-key-bank_pay_"],
         div[class*="st-key-process_"] {
             width: fit-content !important;
             max-width: 100% !important;
         }
+        div[class*="st-key-bank_uploaded_"] {
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+        div[class*="st-key-bank_uploaded_"] [data-testid="stElementContainer"],
+        div[class*="st-key-bank_uploaded_"] [data-testid="stVerticalBlock"] {
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+        div[class*="st-key-avankor_"] {
+            margin-left: 0.45rem !important;
+        }
         div[class*="st-key-spec_dep_"] [data-testid="stElementContainer"],
         div[class*="st-key-avankor_"] [data-testid="stElementContainer"],
         div[class*="st-key-bank_client_"] [data-testid="stElementContainer"],
+        div[class*="st-key-bank_pay_"] [data-testid="stElementContainer"],
         div[class*="st-key-process_"] [data-testid="stElementContainer"],
         div[class*="st-key-spec_dep_"] [data-testid="stVerticalBlock"],
         div[class*="st-key-avankor_"] [data-testid="stVerticalBlock"],
         div[class*="st-key-bank_client_"] [data-testid="stVerticalBlock"],
+        div[class*="st-key-bank_pay_"] [data-testid="stVerticalBlock"],
         div[class*="st-key-process_"] [data-testid="stVerticalBlock"] {
             width: fit-content !important;
             max-width: 100% !important;
@@ -177,25 +232,74 @@ def _inject_table_styles() -> None:
         div[class*="st-key-spec_dep_"] button,
         div[class*="st-key-avankor_"] button,
         div[class*="st-key-bank_client_"] button,
+        div[class*="st-key-bank_pay_"] button,
         div[class*="st-key-process_"] button {
             font-size: 0.75rem !important;
             font-weight: 600 !important;
             padding: 0.25rem 0.5rem !important;
-            min-height: 0 !important;
-            height: auto !important;
+            min-height: 1.625rem !important;
+            height: 1.625rem !important;
             line-height: 1.2 !important;
             white-space: nowrap !important;
             border-radius: 0.4rem !important;
             width: auto !important;
+            box-sizing: border-box !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+        div[class*="st-key-bank_pay_"] button {
+            background: #fef3c7 !important;
+            border: 1px solid #f59e0b !important;
+            color: #92400e !important;
+        }
+        div[class*="st-key-bank_pay_"] button:hover {
+            background: #fde68a !important;
+            border-color: #d97706 !important;
+            color: #78350f !important;
+        }
+        div[class*="st-key-bank_uploaded_"] [data-testid="stHorizontalBlock"] {
+            gap: 0.35rem !important;
+            justify-content: flex-start !important;
+            flex-wrap: nowrap !important;
+            align-items: center !important;
+            width: 100% !important;
+        }
+        div[class*="st-key-bank_uploaded_"] [data-testid="column"] {
+            width: auto !important;
+            flex: 0 0 auto !important;
+            min-width: 0 !important;
+        }
+        div[class*="st-key-bank_uploaded_"] [data-testid="column"]:first-child {
+            min-width: 5.25rem !important;
+        }
+        div[class*="st-key-bank_uploaded_"] [data-testid="column"]:nth-child(2) {
+            min-width: 4.75rem !important;
+        }
+        div[class*="st-key-bank_uploaded_"] div[class*="st-key-bank_pay_"] {
+            width: auto !important;
+            max-width: none !important;
+        }
+        div[class*="st-key-inbox_table"] [data-testid="stHorizontalBlock"] {
+            align-items: flex-start !important;
+        }
+        div[class*="st-key-inbox_table"] [data-testid="column"] [data-testid="stVerticalBlock"] {
+            justify-content: flex-start !important;
+        }
+        div[class*="st-key-inbox_table"] .doc-table-badge {
+            margin-top: 0.05rem;
         }
         div[class*="st-key-spec_dep_"] button p,
         div[class*="st-key-avankor_"] button p,
         div[class*="st-key-bank_client_"] button p,
+        div[class*="st-key-bank_pay_"] button p,
         div[class*="st-key-process_"] button p {
             font-size: 0.75rem !important;
             font-weight: 600 !important;
             white-space: nowrap !important;
             line-height: 1.2 !important;
+            margin: 0 !important;
+            padding: 0 !important;
         }
         div[class*="st-key-sort_"] {
             width: 100% !important;
@@ -229,6 +333,31 @@ def _inject_table_styles() -> None:
             white-space: nowrap !important;
             line-height: 1.2 !important;
         }
+        .inbox-action-header {
+            white-space: nowrap;
+            font-weight: 700;
+            font-size: 0.8125rem;
+        }
+        div[class*="st-key-inbox_table"] {
+            font-size: 0.8125rem;
+        }
+        div[class*="st-key-inbox_table"] [data-testid="stMarkdownContainer"],
+        div[class*="st-key-inbox_table"] [data-testid="stMarkdownContainer"] p,
+        div[class*="st-key-inbox_table"] [data-testid="stText"] {
+            font-size: 0.8125rem !important;
+            line-height: 1.35 !important;
+        }
+        div[class*="st-key-inbox_table"] div[class*="st-key-sort_"] button,
+        div[class*="st-key-inbox_table"] div[class*="st-key-sort_"] button p {
+            font-size: 0.8125rem !important;
+        }
+        div[class*="st-key-inbox_table"] div[class*="st-key-inbox_row_"] {
+            padding-top: 0.4rem !important;
+            padding-bottom: 0.4rem !important;
+        }
+        div[class*="st-key-inbox_table"] [data-testid="stVerticalBlock"] > [data-testid="stHorizontalBlock"]:first-child {
+            margin-bottom: 0.35rem !important;
+        }
         div[data-testid="stHorizontalBlock"]:has(div[class*="st-key-inbox_filter_"]) {
             align-items: flex-end !important;
         }
@@ -256,60 +385,88 @@ def _inject_table_styles() -> None:
     )
 
 
-def _approval_badge(status: DocumentStatus) -> str:
-    if status in (DocumentStatus.APPROVED, DocumentStatus.SENT_TO_AVANKOR):
-        label = "Согласован"
-        background, border, color = "#dcfce7", "#16a34a", "#166534"
-    elif status == DocumentStatus.ON_APPROVAL:
-        label = "На согласовании"
-        background, border, color = "#f3f4f6", "#d1d5db", "#6b7280"
-    elif status == DocumentStatus.REJECTED:
-        label = "Отклонён"
-        background, border, color = "#fee2e2", "#dc2626", "#991b1b"
-    else:
-        label = "Не обработан"
-        background, border, color = "#f3f4f6", "#d1d5db", "#6b7280"
-
+def _doc_table_badge(label: str, background: str, border: str, color: str) -> str:
     return (
         f'<span class="doc-table-badge" style="background:{background};'
         f'border:1px solid {border};color:{color};">{label}</span>'
     )
+
+
+_BADGE_GREEN = ("#dcfce7", "#16a34a", "#166534")
+_BADGE_BLUE = ("#dbeafe", "#2563eb", "#1e40af")
+_BADGE_GRAY = ("#f3f4f6", "#d1d5db", "#6b7280")
+_BADGE_RED = ("#fee2e2", "#dc2626", "#991b1b")
+
+
+def _approval_badge(status: DocumentStatus) -> str:
+    if status in (DocumentStatus.APPROVED, DocumentStatus.SENT_TO_AVANKOR):
+        label = "Согласован"
+        background, border, color = _BADGE_GREEN
+    elif status == DocumentStatus.ON_APPROVAL:
+        label = "На согласовании"
+        background, border, color = _BADGE_GRAY
+    elif status == DocumentStatus.REJECTED:
+        label = "Отклонён"
+        background, border, color = _BADGE_RED
+    else:
+        label = "Не обработан"
+        background, border, color = _BADGE_GRAY
+
+    return _doc_table_badge(label, background, border, color)
+
+
+def _approval_dot_html(approver) -> str:
+    css_class = "approved" if approver and approver.approved else "pending"
+    return f'<span class="approval-dot {css_class}"></span>'
+
+
+def _approval_progress_dots(doc: Document) -> str:
+    parts: list[str] = []
+    for index in range(MAIN_APPROVER_COUNT):
+        approver = doc.approvers[index] if index < len(doc.approvers) else None
+        parts.append(_approval_dot_html(approver))
+
+    if doc.real_estate_enabled:
+        parts.append('<span class="approval-dots-separator">|</span>')
+        for index in range(EXTRA_APPROVER_COUNT):
+            approver = doc.extra_approvers[index] if index < len(doc.extra_approvers) else None
+            parts.append(_approval_dot_html(approver))
+
+    return f'<div class="approval-dots">{"".join(parts)}</div>'
+
+
+def _render_approval_cell(col, doc: Document) -> None:
+    badge = _approval_badge(doc.status)
+    if doc.status == DocumentStatus.ON_APPROVAL:
+        html = (
+            f'<div class="approval-progress">{badge}{_approval_progress_dots(doc)}</div>'
+        )
+    else:
+        html = badge
+    col.markdown(html, unsafe_allow_html=True)
 
 
 def _bank_client_badge(status: BankClientStatus) -> str:
     if status == BankClientStatus.UPLOADED:
         label = "Загружено"
-        background, border, color = "#ecfdf5", "#6ee7b7", "#047857"
+        background, border, color = _BADGE_BLUE
     elif status == BankClientStatus.PAID:
         label = "Оплачено"
-        background, border, color = "#dcfce7", "#16a34a", "#166534"
+        background, border, color = _BADGE_GREEN
     else:
         return "—"
 
-    return (
-        f'<span class="doc-table-badge" style="background:{background};'
-        f'border:1px solid {border};color:{color};">{label}</span>'
-    )
+    return _doc_table_badge(label, background, border, color)
 
 
 def _avankor_badge(status: DocumentStatus) -> str:
     if status == DocumentStatus.SENT_TO_AVANKOR:
-        label = "Отправлено"
-        background, border, color = "#dbeafe", "#1e40af", "#1e40af"
-    else:
-        return "—"
-
-    return (
-        f'<span class="doc-table-badge" style="background:{background};'
-        f'border:1px solid {border};color:{color};">{label}</span>'
-    )
+        return _doc_table_badge("Отправлено", *_BADGE_GREEN)
+    return "—"
 
 
 def _spec_dep_sent_badge() -> str:
-    return (
-        '<span class="doc-table-badge" style="background:#dbeafe;'
-        'border:1px solid #1e40af;color:#1e40af;">Отправлено</span>'
-    )
+    return _doc_table_badge("Отправлено", *_BADGE_GREEN)
 
 
 def _render_avankor_cell(col, doc: Document) -> None:
@@ -322,8 +479,16 @@ def _render_avankor_cell(col, doc: Document) -> None:
 
 
 def _render_bank_client_cell(col, doc: Document) -> None:
-    if doc.bank_client_status in (BankClientStatus.UPLOADED, BankClientStatus.PAID):
+    if doc.bank_client_status == BankClientStatus.PAID:
         col.markdown(_bank_client_badge(doc.bank_client_status), unsafe_allow_html=True)
+    elif doc.bank_client_status == BankClientStatus.UPLOADED:
+        upload_box = col.container(key=f"bank_uploaded_{doc.id}")
+        badge_col, pay_col = upload_box.columns([0.56, 0.44], gap="small")
+        badge_col.markdown(_bank_client_badge(doc.bank_client_status), unsafe_allow_html=True)
+        if pay_col.button("Оплатить", key=f"bank_pay_{doc.id}"):
+            doc.bank_client_status = BankClientStatus.PAID
+            save_document(doc)
+            st.rerun()
     elif col.button("Отправить", key=f"bank_client_{doc.id}"):
         doc.bank_client_status = BankClientStatus.UPLOADED
         save_document(doc)
@@ -691,27 +856,29 @@ def render() -> None:
         ascending=st.session_state.inbox_sort_asc,
     )
 
-    column_weights = [1.5, 0.8, 1.0, 1.1, 0.7, 0.8, 0.9, 1.0, 0.9, 0.9, 0.9, 0.8]
-    header = st.columns(column_weights)
-    for index, (field, label) in enumerate(_SORTABLE_COLUMNS):
-        _render_sortable_header(header[index], field, label)
-    header[11].markdown("**Действие**")
+    column_weights = [1.65, 0.75, 0.9, 0.95, 0.65, 0.75, 0.85, 1.15, 1.0, 0.85, 1.55, 0.95]
+    with st.container(key="inbox_table"):
+        header = st.columns(column_weights)
+        for index, (field, label) in enumerate(_SORTABLE_COLUMNS):
+            _render_sortable_header(header[index], field, label)
+        header[11].markdown('<span class="inbox-action-header">Действие</span>', unsafe_allow_html=True)
 
-    for doc in filtered_documents:
-        cols = st.columns(column_weights)
-        filename = Path(doc.pdf_filename).name if doc.pdf_filename else "—"
-        if doc.diadoc_message_id:
-            filename = f"{filename} · Diadoc"
-        cols[0].write(filename)
-        cols[1].write(_format_received_at(doc.received_at))
-        cols[2].write(doc.fields.zpif_name or doc.fields.fund_name or "—")
-        cols[3].write(doc.fields.counterparty_name or "—")
-        cols[4].write(doc.document_type.label if doc.document_type else "—")
-        cols[5].write(f"{doc.fields.amount:,.2f}" if doc.fields.amount else "—")
-        cols[6].write(_format_payment_date(doc.fields.payment_date))
-        cols[7].markdown(_approval_badge(doc.status), unsafe_allow_html=True)
-        _render_avankor_cell(cols[8], doc)
-        _render_spec_dep_cell(cols[9], doc)
-        _render_bank_client_cell(cols[10], doc)
-        if cols[11].button("Обработать", key=f"process_{doc.id}"):
-            _open_document(doc.id)
+        for doc in filtered_documents:
+            row_box = st.container(key=f"inbox_row_{doc.id}")
+            cols = row_box.columns(column_weights)
+            filename = Path(doc.pdf_filename).name if doc.pdf_filename else "—"
+            if doc.diadoc_message_id:
+                filename = f"{filename} · Diadoc"
+            cols[0].write(filename)
+            cols[1].write(_format_received_at(doc.received_at))
+            cols[2].write(doc.fields.zpif_name or doc.fields.fund_name or "—")
+            cols[3].write(doc.fields.counterparty_name or "—")
+            cols[4].write(doc.document_type.label if doc.document_type else "—")
+            cols[5].write(f"{doc.fields.amount:,.2f}" if doc.fields.amount else "—")
+            cols[6].write(_format_payment_date(doc.fields.payment_date))
+            _render_approval_cell(cols[7], doc)
+            _render_avankor_cell(cols[8], doc)
+            _render_spec_dep_cell(cols[9], doc)
+            _render_bank_client_cell(cols[10], doc)
+            if cols[11].button("Обработать", key=f"process_{doc.id}"):
+                _open_document(doc.id)

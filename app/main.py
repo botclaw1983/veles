@@ -10,7 +10,7 @@ import streamlit as st
 from app.auth import logout_button, require_auth
 from app.branding import configure_app_branding
 from app.services.reference_store import init_references
-from app.views import deposits, directories, document, inbox, income, loans, payment_calendar
+from app.views import deposits, directories, document, inbox, income, loans, payment_calendar, tenant_documents
 from app.views import settings as settings_page
 from config.settings import settings
 from db import init_db
@@ -39,10 +39,14 @@ st.markdown(
     """
     <style>
     [data-testid="stSidebar"] {
-        width: 22% !important;
+        width: 17% !important;
     }
     [data-testid="stSidebarNav"] a span {
-        font-size: 0.875rem;
+        font-size: 0.8125rem;
+    }
+    [data-testid="stSidebarNav"] a {
+        padding-top: 0.35rem !important;
+        padding-bottom: 0.35rem !important;
     }
     </style>
     """,
@@ -78,6 +82,12 @@ pg = st.navigation(
         st.Page(loans.render, title="Займы", icon="💰", url_path="loans"),
         st.Page(deposits.render, title="Депозиты", icon="🏦", url_path="deposits"),
         st.Page(income.render, title="Доход", icon="📈", url_path="income"),
+        st.Page(
+            tenant_documents.render,
+            title="Документы арендаторов",
+            icon="🏢",
+            url_path="tenant-documents",
+        ),
         st.Page(settings_page.render, title="Настройки", icon="⚙️", url_path="settings"),
     ]
 )

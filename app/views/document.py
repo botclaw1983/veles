@@ -5,6 +5,7 @@ from pathlib import Path
 import streamlit as st
 
 from app.components.approval_status import render_approval_status, send_document_to_approval
+from app.components.counterparty_contracts import render_counterparty_contracts
 from app.components.pdf_viewer import render_pdf
 from app.services.document_store import get_document, save_document
 from app.services.reference_store import (
@@ -20,8 +21,13 @@ from app.services.reference_store import (
     resolve_document_type,
 )
 from config.reference_data import EXTRA_APPROVER_COUNT, MAIN_APPROVER_COUNT
-from integrations.ollama_recognition import ExtractedFields, check_ollama_available, extract_fields_from_pdf
-from models.document import Document, DocumentStatus, SpecDepStatus
+from integrations.ollama_recognition import (
+    ExtractedFields,
+    RecognitionParseError,
+    check_ollama_available,
+    extract_fields_from_pdf,
+)
+from models.document import Document, DocumentStatus, SpecDepStatus, normalize_inn
 
 
 def _get_selected_document() -> Document | None:
@@ -170,11 +176,11 @@ def _apply_extracted_fields(doc: Document, extracted: ExtractedFields) -> None:
     if extracted.counterparty_name:
         doc.fields.counterparty_name = extracted.counterparty_name
     if extracted.counterparty_inn:
-        doc.fields.counterparty_inn = extracted.counterparty_inn
+        doc.fields.counterparty_inn = normalize_inn(extracted.counterparty_inn)
     if extracted.fund_name:
         doc.fields.fund_name = extracted.fund_name
     if extracted.fund_inn:
-        doc.fields.fund_inn = extracted.fund_inn
+        doc.fields.fund_inn = normalize_inn(extracted.fund_inn)
     if extracted.zpif_name:
         doc.fields.zpif_name = extracted.zpif_name
     elif extracted.fund_name:
@@ -226,6 +232,12 @@ def _render_recognition(doc: Document) -> None:
                 save_document(doc)
                 st.success("Реквизиты заполнены. Проверьте и сохраните.")
                 st.rerun()
+            except RecognitionParseError as exc:
+                st.error(f"Ошибка распознавания: {exc}")
+                if exc.raw_response.strip():
+                    with st.expander("Ответ модели (для диагностики)"):
+                        st.code(exc.raw_response, language="json")
+                st.caption(f"Полный ответ также сохранён в файл: `{exc.log_path}`")
             except Exception as exc:  # noqa: BLE001 — показываем ошибку в UI
                 st.error(f"Ошибка распознавания: {exc}")
 
@@ -560,6 +572,8 @@ def render() -> None:
             render_pdf(doc.pdf_filename, height=920)
         else:
             st.info("PDF-файл не найден.")
+
+        render_counterparty_contracts(doc)
 
     with col_side:
         _render_recognition(doc)

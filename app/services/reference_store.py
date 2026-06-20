@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import copy
+import re
+from datetime import datetime
 from uuid import uuid4
 
 import streamlit as st
@@ -8,18 +10,21 @@ import streamlit as st
 from config.reference_data import (
     DEFAULT_APPROVER_ROWS,
     DEFAULT_COUNTERPARTIES,
+    DEFAULT_COUNTERPARTY_CONTRACTS,
     DEFAULT_DEPOSIT_ACCOUNTS,
     DEFAULT_DEPOSITS_HISTORY,
     DEFAULT_EXTRA_APPROVER_ROWS,
     DEFAULT_FUNDS,
     DEFAULT_LOAN_ACCOUNTS,
     DEFAULT_LOANS_HISTORY,
-    EXTRA_APPROVER_COUNT,
+    DEFAULT_TENANTS,
     DEFAULT_ZPIF,
     DEFAULT_ZPIF_SHAREHOLDERS,
+    EXTRA_APPROVER_COUNT,
     MAIN_APPROVER_COUNT,
 )
-from models.document import DocumentType
+from models.document import DocumentType, normalize_inn
+from config.settings import settings
 
 LOAN_STATUS_LABELS: dict[str, str] = {
     "draft": "новый",
@@ -142,6 +147,12 @@ def init_references() -> None:
         st.session_state.ref_deposits_history = copy.deepcopy(DEFAULT_DEPOSITS_HISTORY)
     if "income_request" not in st.session_state:
         st.session_state.income_request = _empty_income_request()
+    if "ref_counterparty_contracts" not in st.session_state:
+        st.session_state.ref_counterparty_contracts = copy.deepcopy(DEFAULT_COUNTERPARTY_CONTRACTS)
+    if "ref_tenants" not in st.session_state:
+        st.session_state.ref_tenants = copy.deepcopy(DEFAULT_TENANTS)
+    if "ref_tenant_outbound_docs" not in st.session_state:
+        st.session_state.ref_tenant_outbound_docs = []
 
 
 def _empty_loan_request() -> dict:
@@ -201,6 +212,59 @@ def get_counterparty(name: str) -> dict[str, str] | None:
         if item["name"] == name:
             return item
     return None
+
+
+def get_counterparty_contracts() -> list[dict[str, str]]:
+    init_references()
+    return st.session_state.ref_counterparty_contracts
+
+
+def _counterparty_name_tokens(value: str) -> set[str]:
+    cleaned = re.sub(r"[^\w\s]", " ", value.casefold())
+    stop_words = {"ооо", "ао", "ип", "зао", "пао", "компания", "фирма"}
+    return {token for token in cleaned.split() if len(token) >= 4 and token not in stop_words}
+
+
+def _counterparty_name_matches(left: str, right: str) -> bool:
+    left_norm = left.strip().casefold()
+    right_norm = right.strip().casefold()
+    if not left_norm or not right_norm:
+        return False
+    if left_norm == right_norm or left_norm in right_norm or right_norm in left_norm:
+        return True
+    return bool(_counterparty_name_tokens(left) & _counterparty_name_tokens(right))
+
+
+def get_contracts_for_counterparty(
+    counterparty_name: str,
+    counterparty_inn: str = "",
+) -> list[dict[str, str]]:
+    name = counterparty_name.strip()
+    inn = normalize_inn(counterparty_inn)
+    if not name and not inn:
+        return []
+
+    matched: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for contract in get_counterparty_contracts():
+        contract_id = contract["id"]
+        if contract_id in seen:
+            continue
+        contract_inn = normalize_inn(contract.get("counterparty_inn", ""))
+        contract_name = contract.get("counterparty_name", "")
+        if inn and contract_inn and inn == contract_inn:
+            matched.append(contract)
+            seen.add(contract_id)
+            continue
+        if name and _counterparty_name_matches(name, contract_name):
+            matched.append(contract)
+            seen.add(contract_id)
+
+    return sorted(matched, key=lambda item: item.get("date", ""), reverse=True)
+
+
+def get_contract_pdf_path(contract: dict[str, str]) -> Path:
+    return settings.contracts_dir / contract["pdf_filename"]
 
 
 def get_loan_accounts() -> list[dict[str, str]]:
@@ -502,3 +566,54 @@ def calculate_income_distribution(zpif_name: str, total_amount: float) -> list[d
         )
 
     return rows
+
+
+def get_tenants() -> list[dict]:
+    init_references()
+    return list(st.session_state.ref_tenants)
+
+
+def save_tenants(records: list[dict]) -> None:
+    st.session_state.ref_tenants = records
+
+
+TENANT_OUTBOUND_STATUS_LABELS: dict[str, str] = {
+    "ready": "Готов к отправке",
+    "sent": "Отправлено в Diadoc",
+}
+
+
+def get_tenant_outbound_docs() -> list[dict]:
+    init_references()
+    return list(st.session_state.ref_tenant_outbound_docs)
+
+
+def add_tenant_outbound_doc(
+    *,
+    tenant_id: str,
+    tenant_name: str,
+    document_type: str,
+    period: str,
+) -> dict:
+    init_references()
+    record = {
+        "id": str(uuid4()),
+        "tenant_id": tenant_id,
+        "tenant_name": tenant_name,
+        "document_type": document_type,
+        "period": period,
+        "status": "ready",
+        "sent_at": "",
+    }
+    st.session_state.ref_tenant_outbound_docs.append(record)
+    return record
+
+
+def mark_tenant_outbound_sent(doc_id: str) -> bool:
+    init_references()
+    for record in st.session_state.ref_tenant_outbound_docs:
+        if record["id"] == doc_id and record["status"] != "sent":
+            record["status"] = "sent"
+            record["sent_at"] = datetime.now().strftime("%d.%m.%Y %H:%M")
+            return True
+    return False

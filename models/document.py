@@ -4,7 +4,20 @@ from config.reference_data import EXTRA_APPROVER_COUNT
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from enum import Enum
+import re
 from uuid import uuid4
+
+
+def normalize_inn(value: str | None) -> str:
+    """ИНН юрлица — 10 цифр, физлица — 12. Остальное отбрасывается."""
+    if not value:
+        return ""
+    digits = re.sub(r"\D", "", str(value))
+    if not digits or not digits.strip("0"):
+        return ""
+    if len(digits) in (10, 12):
+        return digits
+    return ""
 
 
 class DocumentType(str, Enum):

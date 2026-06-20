@@ -9,14 +9,21 @@ VELES_LOGO = ASSETS_DIR / "veles_capital_logo.svg"
 VELES_LOGO_URL = "https://veles-capital.ru/"
 
 # Ширина полоски сайдбара в свёрнутом состоянии (только кнопка «развернуть»)
-SIDEBAR_RAIL = "7rem"
-# Горизонтальный отступ основного контента Streamlit (wide layout)
-MAIN_PADDING_X = "1rem"
+SIDEBAR_RAIL = "6rem"
+# Горизонтальные отступы основного контента Streamlit (wide layout)
+MAIN_PADDING_LEFT = "0.85rem"
+MAIN_PADDING_RIGHT = "0.35rem"
+# Ширина развёрнутого сайдбара
+SIDEBAR_WIDTH_MIN = "13rem"
+SIDEBAR_WIDTH_MAX = "15.5rem"
 
 
 def inject_brand_styles() -> None:
     rail = SIDEBAR_RAIL
-    main_pad = MAIN_PADDING_X
+    main_pad_left = MAIN_PADDING_LEFT
+    main_pad_right = MAIN_PADDING_RIGHT
+    sidebar_min = SIDEBAR_WIDTH_MIN
+    sidebar_max = SIDEBAR_WIDTH_MAX
     st.markdown(
         f"""
         <style>
@@ -38,12 +45,12 @@ def inject_brand_styles() -> None:
         }}
 
         section[data-testid="stSidebar"] {{
-            min-width: 16rem !important;
-            max-width: 20rem !important;
+            min-width: {sidebar_min} !important;
+            max-width: {sidebar_max} !important;
         }}
         section[data-testid="stSidebar"] > div:first-child {{
-            min-width: 16rem !important;
-            max-width: 20rem !important;
+            min-width: {sidebar_min} !important;
+            max-width: {sidebar_max} !important;
         }}
 
         /* --- Сайдбар открыт --- */
@@ -56,7 +63,7 @@ def inject_brand_styles() -> None:
             min-height: 4.25rem !important;
         }}
         [data-testid="stSidebarHeader"] {{
-            padding: 0.75rem 0.75rem 0.35rem 0.75rem !important;
+            padding: 0.55rem 0.55rem 0.25rem 0.55rem !important;
             align-items: flex-start !important;
         }}
         [data-testid="stSidebarHeader"] > div:first-child,
@@ -204,7 +211,7 @@ def inject_brand_styles() -> None:
             align-items: center !important;
             flex: 0 1 auto !important;
             min-width: 0 !important;
-            margin: 0 0 0 calc({rail} + {main_pad}) !important;
+            margin: 0 0 0 calc({rail} + {main_pad_left}) !important;
             padding: 0 !important;
             pointer-events: auto !important;
         }}
@@ -214,7 +221,7 @@ def inject_brand_styles() -> None:
             display: block !important;
             visibility: visible !important;
             width: auto !important;
-            max-width: min(18rem, calc(100vw - {rail} - 2 * {main_pad})) !important;
+            max-width: min(18rem, calc(100vw - {rail} - {main_pad_left} - {main_pad_right})) !important;
             height: auto !important;
             max-height: 2.25rem !important;
             object-fit: contain !important;
@@ -224,6 +231,14 @@ def inject_brand_styles() -> None:
         body:has(section[data-testid="stSidebar"][aria-expanded="false"]) [data-testid="stMain"],
         body:has(section[data-testid="stSidebar"][aria-expanded="false"]) [data-testid="stMainBlockContainer"] {{
             margin-left: {rail} !important;
+        }}
+
+        [data-testid="stMainBlockContainer"] {{
+            padding-left: {main_pad_left} !important;
+            padding-right: {main_pad_right} !important;
+        }}
+        [data-testid="stMainBlockContainer"] > div {{
+            max-width: 100% !important;
         }}
         </style>
         """,

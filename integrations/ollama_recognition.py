@@ -13,24 +13,60 @@ import fitz
 from ollama import Client
 
 from config.settings import settings
+from models.document import normalize_inn
 
-EXTRACTION_PROMPT = """Ты извлекаешь реквизиты из российского бухгалтерского документа (счёт, УПД, акт).
-Верни ТОЛЬКО JSON без markdown и пояснений со следующими полями:
-{
-  "document_type": "invoice|act|utd|turnover",
-  "counterparty_name": "название контрагента (поставщика)",
-  "counterparty_inn": "ИНН контрагента или пустая строка",
-  "fund_name": "юр. лицо / получатель платежа из документа или пустая строка",
-  "fund_inn": "ИНН получателя или пустая строка",
-  "zpif_name": "название ЗПИФ (паевого фонда) или пустая строка",
-  "amount": 12345.67,
-  "period_from": "YYYY-MM-DD или null",
-  "period_to": "YYYY-MM-DD или null",
-  "description": "краткое назначение платежа"
-}
-Если поле не найдено — пустая строка, для amount — null, для дат — null.
-В строковых значениях экранируй кавычки (\\") или заменяй их на «».
-Ответ должен быть валидным JSON, который можно распарсить json.loads()."""
+EXTRACTION_PROMPT = """Извлеки реквизиты из российского документа (счёт, УПД, акт) и верни один JSON-объект.
+
+Обязательные ключи (все должны присутствовать):
+document_type, counterparty_name, counterparty_inn, fund_name, fund_inn, zpif_name, amount, period_from, period_to, description
+
+Пример ответа:
+{"document_type":"utd","counterparty_name":"ООО «Пример»","counterparty_inn":"7701234567","fund_name":"ООО «Покупатель»","fund_inn":"7707654321","zpif_name":"","amount":3660.00,"period_from":null,"period_to":null,"description":"Оплата по счёту"}
+
+Правила:
+- document_type: invoice, act, utd или turnover
+- counterparty_name: поставщик / продавец
+- fund_name: покупатель / получатель
+- counterparty_inn и fund_inn: только 10 или 12 цифр, иначе ""
+- amount: число или null
+- period_from, period_to: YYYY-MM-DD или null
+- без markdown, без комментариев, без текста до или после JSON
+- в текстовых значениях не используй символ двойной кавычки — замени на «»"""
+
+SYSTEM_PROMPT = (
+    "Ты OCR-система для бухгалтерских документов РФ. "
+    "Отвечай только валидным JSON-объектом с указанными ключами."
+)
+
+_MAX_RECOGNITION_ATTEMPTS = 3
+
+@dataclass(frozen=True)
+class _RecognitionProfile:
+    max_pages: int
+    dpi_scale: float
+    max_dimension: int
+    num_ctx: int | None = None
+
+
+# Прогрессивное уменьшение картинок и рост контекста: vision-токены быстро
+# заполняют num_ctx, из-за чего модель успевает вернуть только «{».
+_RECOGNITION_PROFILES: tuple[_RecognitionProfile, ...] = (
+    _RecognitionProfile(max_pages=1, dpi_scale=1.5, max_dimension=1280),
+    _RecognitionProfile(max_pages=1, dpi_scale=1.2, max_dimension=1024, num_ctx=4096),
+    _RecognitionProfile(max_pages=1, dpi_scale=1.0, max_dimension=896, num_ctx=8192),
+)
+
+_STRING_FIELD_ORDER = [
+    "document_type",
+    "counterparty_name",
+    "counterparty_inn",
+    "fund_name",
+    "fund_inn",
+    "zpif_name",
+    "description",
+]
+
+_LAST_RESPONSE_PATH = settings.data_dir / "ollama_last_response.txt"
 
 
 @dataclass
@@ -47,18 +83,35 @@ class ExtractedFields:
     description: str = ""
 
 
+class RecognitionParseError(ValueError):
+    def __init__(self, message: str, *, raw_response: str, log_path: Path) -> None:
+        super().__init__(message)
+        self.raw_response = raw_response
+        self.log_path = log_path
+
+
 def _client() -> Client:
     return Client(host=settings.ollama_host)
 
 
-def pdf_pages_to_base64(pdf_path: Path, *, max_pages: int = 2, dpi_scale: float = 1.5) -> list[str]:
+def pdf_pages_to_base64(
+    pdf_path: Path,
+    *,
+    max_pages: int = 1,
+    dpi_scale: float = 1.5,
+    max_dimension: int = 1280,
+) -> list[str]:
     """Рендерит первые страницы PDF в PNG (base64) для vision-модели."""
     doc = fitz.open(pdf_path)
     images: list[str] = []
     try:
-        matrix = fitz.Matrix(dpi_scale, dpi_scale)
         for page_num in range(min(doc.page_count, max_pages)):
-            pix = doc.load_page(page_num).get_pixmap(matrix=matrix, alpha=False)
+            page = doc.load_page(page_num)
+            scale = dpi_scale
+            longest_side = max(page.rect.width, page.rect.height) * scale
+            if longest_side > max_dimension:
+                scale *= max_dimension / longest_side
+            pix = page.get_pixmap(matrix=fitz.Matrix(scale, scale), alpha=False)
             images.append(base64.b64encode(pix.tobytes("png")).decode())
     finally:
         doc.close()
@@ -91,26 +144,225 @@ def _extract_json_object(text: str) -> str | None:
     return text[start : end + 1]
 
 
+def _is_string_closing_quote(text: str, quote_index: int) -> bool:
+    index = quote_index + 1
+    while index < len(text) and text[index] in " \t\n\r":
+        index += 1
+    return index >= len(text) or text[index] in ",}:]"
+
+
+def _repair_unescaped_quotes(text: str) -> str:
+    result: list[str] = []
+    index = 0
+    in_string = False
+    length = len(text)
+
+    while index < length:
+        char = text[index]
+        if char == '"' and not in_string:
+            in_string = True
+            result.append(char)
+            index += 1
+            continue
+        if char == '"' and in_string:
+            if _is_string_closing_quote(text, index):
+                in_string = False
+                result.append(char)
+            else:
+                result.append('\\"')
+            index += 1
+            continue
+        if char == "\\" and in_string and index + 1 < length:
+            result.append(char)
+            result.append(text[index + 1])
+            index += 2
+            continue
+        result.append(char)
+        index += 1
+
+    return "".join(result)
+
+
+def _extract_string_field(body: str, field: str, next_fields: list[str]) -> str | None:
+    match = re.search(rf'"{re.escape(field)}"\s*:\s*"', body)
+    if not match:
+        return None
+
+    start = match.end()
+    end = len(body)
+    for next_field in next_fields:
+        next_match = re.search(rf'"\s*,\s*"{re.escape(next_field)}"\s*:', body[start:])
+        if next_match:
+            end = min(end, start + next_match.start())
+
+    amount_match = re.search(r'"\s*,\s*"amount"\s*:', body[start:])
+    if amount_match:
+        end = min(end, start + amount_match.start())
+
+    period_match = re.search(r'"\s*,\s*"period_from"\s*:', body[start:])
+    if period_match:
+        end = min(end, start + period_match.start())
+
+    closing_match = re.search(r'"\s*[\n\r]+\s*}', body[start:])
+    if closing_match:
+        end = min(end, start + closing_match.start())
+
+    value = body[start:end].replace('\\"', '"').replace("\\n", "\n").strip()
+    return value
+
+
+def _extract_scalar_field(body: str, field: str) -> object | None:
+    match = re.search(
+        rf'"{re.escape(field)}"\s*:\s*(null|"[^"]*"|[\d.]+)',
+        body,
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    raw = match.group(1)
+    if raw == "null":
+        return None
+    if raw.startswith('"'):
+        return raw[1:-1]
+    return raw
+
+
+def _extract_fields_loosely(text: str) -> dict:
+    body = _extract_json_object(_strip_markdown_fence(text)) or text.strip()
+    result: dict = {}
+
+    for index, field in enumerate(_STRING_FIELD_ORDER):
+        value = _extract_string_field(body, field, _STRING_FIELD_ORDER[index + 1 :])
+        if value is not None:
+            result[field] = value
+
+    amount_raw = _extract_scalar_field(body, "amount")
+    if amount_raw is not None:
+        try:
+            result["amount"] = float(amount_raw)
+        except (TypeError, ValueError):
+            result["amount"] = None
+
+    for field in ("period_from", "period_to"):
+        value = _extract_scalar_field(body, field)
+        if value is not None:
+            result[field] = value
+
+    if result:
+        return result
+    raise ValueError("Не удалось извлечь поля из ответа модели")
+
+
+def _save_raw_response(content: str) -> Path:
+    _LAST_RESPONSE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    _LAST_RESPONSE_PATH.write_text(content, encoding="utf-8")
+    return _LAST_RESPONSE_PATH
+
+
+def _response_looks_valid(text: str) -> bool:
+    cleaned = _strip_markdown_fence(text).strip()
+    if len(cleaned) < 20:
+        return False
+    if cleaned.startswith("{") and not cleaned.endswith("}"):
+        return False
+    return any(field in cleaned for field in (*_STRING_FIELD_ORDER, "amount"))
+
+
+def _has_useful_data(data: dict) -> bool:
+    if data.get("document_type") in {"invoice", "act", "utd", "turnover"}:
+        return True
+    if str(data.get("counterparty_name") or "").strip():
+        return True
+    if str(data.get("fund_name") or "").strip():
+        return True
+    if data.get("amount") not in (None, "", 0):
+        return True
+    return False
+
+
+def _request_model(
+    images: list[str],
+    *,
+    attempt: int,
+    num_ctx: int | None = None,
+) -> str:
+    user_prompt = EXTRACTION_PROMPT
+    if attempt > 0:
+        user_prompt += (
+            "\n\nПредыдущий ответ был неверным или обрезан. "
+            "Верни полный JSON со всеми ключами из примера."
+        )
+
+    response = _client().chat(
+        model=settings.ollama_model,
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {
+                "role": "user",
+                "content": user_prompt,
+                "images": images,
+            },
+        ],
+        format="json",
+        think=False,
+        options={
+            "num_ctx": num_ctx or settings.ollama_num_ctx,
+            "num_predict": 512,
+            "temperature": 0.0 if attempt == 0 else 0.1,
+        },
+    )
+    content = (response.message.content or "").strip()
+    thinking = (response.message.thinking or "").strip()
+    if _response_looks_valid(content):
+        return content
+    if _response_looks_valid(thinking):
+        return thinking
+    return content or thinking
+
+
 def _parse_json_response(text: str) -> dict:
     cleaned = _strip_markdown_fence(text)
-    candidates = [cleaned]
-    extracted = _extract_json_object(cleaned)
-    if extracted and extracted not in candidates:
-        candidates.append(extracted)
+    candidates: list[str] = []
+    for item in (cleaned, _extract_json_object(cleaned)):
+        if item and item not in candidates:
+            candidates.append(item)
+            repaired = _repair_unescaped_quotes(item)
+            if repaired not in candidates:
+                candidates.append(repaired)
 
     last_error: json.JSONDecodeError | None = None
     for candidate in candidates:
         try:
-            return json.loads(candidate)
+            parsed = json.loads(candidate)
+            if isinstance(parsed, dict):
+                return parsed
         except json.JSONDecodeError as exc:
             last_error = exc
 
-    assert last_error is not None
-    raise ValueError(
-        "Модель вернула некорректный JSON "
-        f"(строка {last_error.lineno}, символ {last_error.colno}). "
-        "Часто это из‑за неэкранированных кавычек в названиях организаций."
-    ) from last_error
+    try:
+        return _extract_fields_loosely(text)
+    except ValueError as loose_error:
+        message = "Не удалось извлечь поля из ответа модели"
+        if last_error is not None:
+            message += f" (строка {last_error.lineno}, символ {last_error.colno})"
+        raise ValueError(message) from loose_error
+
+
+def _parse_model_response(text: str) -> dict:
+    try:
+        data = _parse_json_response(text)
+    except ValueError as exc:
+        log_path = _save_raw_response(text)
+        details = f"{exc} Полный ответ сохранён в: {log_path}"
+        raise RecognitionParseError(details, raw_response=text, log_path=log_path) from exc
+    if not _has_useful_data(data):
+        log_path = _save_raw_response(text)
+        details = (
+            "Модель вернула JSON без полезных данных. "
+            f"Полный ответ сохранён в: {log_path}"
+        )
+        raise RecognitionParseError(details, raw_response=text, log_path=log_path)
+    return data
 
 
 def _to_extracted(data: dict) -> ExtractedFields:
@@ -128,9 +380,9 @@ def _to_extracted(data: dict) -> ExtractedFields:
     return ExtractedFields(
         document_type=doc_type,
         counterparty_name=str(data.get("counterparty_name") or "").strip(),
-        counterparty_inn=str(data.get("counterparty_inn") or "").strip(),
+        counterparty_inn=normalize_inn(str(data.get("counterparty_inn") or "")),
         fund_name=str(data.get("fund_name") or "").strip(),
-        fund_inn=str(data.get("fund_inn") or "").strip(),
+        fund_inn=normalize_inn(str(data.get("fund_inn") or "")),
         zpif_name=str(data.get("zpif_name") or "").strip(),
         amount=amount,
         period_from=_parse_date(data.get("period_from")),
@@ -145,31 +397,52 @@ def extract_fields_from_pdf(pdf_path: Path | str) -> ExtractedFields:
     if not path.is_file():
         raise FileNotFoundError(f"PDF не найден: {path}")
 
-    images = pdf_pages_to_base64(path)
-    if not images:
-        raise ValueError("PDF не содержит страниц")
+    profiles = _RECOGNITION_PROFILES[:_MAX_RECOGNITION_ATTEMPTS]
+    last_error: RecognitionParseError | None = None
+    last_content = ""
 
-    response = _client().chat(
-        model=settings.ollama_model,
-        messages=[
-            {
-                "role": "user",
-                "content": EXTRACTION_PROMPT,
-                "images": images,
-            }
-        ],
-        format="json",
-        think=False,
-        options={
-            "num_ctx": settings.ollama_num_ctx,
-            "num_predict": 1024,
-            "temperature": 0.1,
-        },
+    for attempt, profile in enumerate(profiles):
+        images = pdf_pages_to_base64(
+            path,
+            max_pages=profile.max_pages,
+            dpi_scale=profile.dpi_scale,
+            max_dimension=profile.max_dimension,
+        )
+        if not images:
+            raise ValueError("PDF не содержит страниц")
+
+        content = _request_model(images, attempt=attempt, num_ctx=profile.num_ctx)
+        last_content = content
+        if not content:
+            continue
+        if not _response_looks_valid(content):
+            continue
+        try:
+            data = _parse_model_response(content)
+            return _to_extracted(data)
+        except RecognitionParseError as exc:
+            last_error = exc
+            continue
+
+    if last_error is not None:
+        raise last_error
+
+    log_path = _save_raw_response(last_content or "(пустой ответ)")
+    truncated_hint = ""
+    if last_content.strip() in ("{", "{\n", "{\r\n"):
+        truncated_hint = (
+            " Модель вернула только «{» — скорее всего, не хватило контекста "
+            f"(OLLAMA_NUM_CTX={settings.ollama_num_ctx}). "
+            "Попробуйте увеличить OLLAMA_NUM_CTX до 4096 или 8192."
+        )
+    raise RecognitionParseError(
+        "Модель не смогла распознать документ после "
+        f"{len(profiles)} попыток."
+        f"{truncated_hint} Заполните реквизиты вручную. "
+        f"Последний ответ сохранён в: {log_path}",
+        raw_response=last_content,
+        log_path=log_path,
     )
-
-    content = response.message.content or response.message.thinking or ""
-    data = _parse_json_response(content)
-    return _to_extracted(data)
 
 
 def check_ollama_available() -> tuple[bool, str]:

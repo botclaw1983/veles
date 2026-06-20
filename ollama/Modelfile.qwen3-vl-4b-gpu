@@ -2,5 +2,5 @@
 # instruct-вариант без thinking-режима
 FROM qwen3-vl:4b-instruct
 
-PARAMETER num_ctx 2048
+PARAMETER num_ctx 4096
 PARAMETER temperature 0.1

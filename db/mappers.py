@@ -11,6 +11,7 @@ from models.document import (
     DocumentStatus,
     DocumentType,
     SpecDepStatus,
+    normalize_inn,
 )
 
 
@@ -28,10 +29,10 @@ def row_to_document(row: DocumentRow) -> Document:
         document_type=document_type,
         fields=DocumentFields(
             fund_name=row.fund_name,
-            fund_inn=row.fund_inn,
-            zpif_name=row.zpif_name,
-            counterparty_name=row.counterparty_name,
-            counterparty_inn=row.counterparty_inn,
+        fund_inn=normalize_inn(row.fund_inn),
+        zpif_name=row.zpif_name,
+        counterparty_name=row.counterparty_name,
+        counterparty_inn=normalize_inn(row.counterparty_inn),
             amount=row.amount,
             period_from=period_from,
             period_to=period_to,
@@ -66,10 +67,10 @@ def document_to_row(doc: Document) -> DocumentRow:
         status=doc.status.value,
         document_type=doc.document_type.value if doc.document_type else None,
         fund_name=doc.fields.fund_name,
-        fund_inn=doc.fields.fund_inn,
+        fund_inn=normalize_inn(doc.fields.fund_inn),
         zpif_name=doc.fields.zpif_name,
         counterparty_name=doc.fields.counterparty_name,
-        counterparty_inn=doc.fields.counterparty_inn,
+        counterparty_inn=normalize_inn(doc.fields.counterparty_inn),
         amount=doc.fields.amount,
         period_from=_as_date(doc.fields.period_from),
         period_to=_as_date(doc.fields.period_to),
@@ -118,10 +119,10 @@ def update_row_from_document(row: DocumentRow, doc: Document) -> None:
     row.status = doc.status.value
     row.document_type = doc.document_type.value if doc.document_type else None
     row.fund_name = doc.fields.fund_name
-    row.fund_inn = doc.fields.fund_inn
+    row.fund_inn = normalize_inn(doc.fields.fund_inn)
     row.zpif_name = doc.fields.zpif_name
     row.counterparty_name = doc.fields.counterparty_name
-    row.counterparty_inn = doc.fields.counterparty_inn
+    row.counterparty_inn = normalize_inn(doc.fields.counterparty_inn)
     row.amount = doc.fields.amount
     row.period_from = _as_date(doc.fields.period_from)
     row.period_to = _as_date(doc.fields.period_to)

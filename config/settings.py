@@ -11,6 +11,7 @@ class Settings:
     app_title: str = "Veles"
     data_dir: Path = ROOT_DIR / "data" / "documents"
     pdf_docs_dir: Path = ROOT_DIR / "pdf_docs"
+    contracts_dir: Path = ROOT_DIR / "contracts"
 
     diadoc_api_url: str = os.getenv("DIADOC_API_URL", "https://diadoc-api.kontur.ru")
     diadoc_client_id: str | None = os.getenv("DIADOC_CLIENT_ID")
@@ -25,7 +26,7 @@ class Settings:
 
     ollama_host: str = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434")
     ollama_model: str = os.getenv("OLLAMA_MODEL", "veles-vl")
-    ollama_num_ctx: int = int(os.getenv("OLLAMA_NUM_CTX", "2048"))
+    ollama_num_ctx: int = int(os.getenv("OLLAMA_NUM_CTX", "4096"))
 
     database_url: str = os.getenv(
         "DATABASE_URL",
@@ -52,3 +53,4 @@ class Settings:
 settings = Settings()
 settings.data_dir.mkdir(parents=True, exist_ok=True)
 settings.pdf_docs_dir.mkdir(parents=True, exist_ok=True)
+settings.contracts_dir.mkdir(parents=True, exist_ok=True)
