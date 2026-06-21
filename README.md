@@ -19,10 +19,14 @@
 
 Подробнее о выборе стека и преимуществах FastAPI + React — в [PROJECT.md](1.%20Описание%20проекта.md) (раздел 7) и [TECHNICAL_REQUIREMENTS.md](4.%20Технические%20требования%20и%20инфраструктура.md) (раздел 4).
 
-##Обзорная информация по прототипу
+## Обзорная информация по прототипу
 
 Ссылка на Holst https://app.holst.so/share/b/e5a91c3c-098a-4b0e-9a4e-7341402ae85d
-![[Pasted image 20260621235034.png]]
+
+![Экран входа в прототип Veles](docs/screenshots/login.jpg)
+
+
+
 
 ![[Pasted image 20260621234947.png]]
 ![[Pasted image 20260621235123.png]]
