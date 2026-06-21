@@ -17,6 +17,9 @@ from config.reference_data import (
     DEFAULT_FUNDS,
     DEFAULT_LOAN_ACCOUNTS,
     DEFAULT_LOANS_HISTORY,
+    DEFAULT_PD_BY_OKVED,
+    DEFAULT_RECEIVABLES,
+    DEFAULT_SCHA_DISCOUNT_RULES,
     DEFAULT_TENANTS,
     DEFAULT_ZPIF,
     DEFAULT_ZPIF_SHAREHOLDERS,
@@ -153,6 +156,14 @@ def init_references() -> None:
         st.session_state.ref_tenants = copy.deepcopy(DEFAULT_TENANTS)
     if "ref_tenant_outbound_docs" not in st.session_state:
         st.session_state.ref_tenant_outbound_docs = []
+    if "ref_receivables" not in st.session_state:
+        st.session_state.ref_receivables = copy.deepcopy(DEFAULT_RECEIVABLES)
+    if "ref_pd_by_okved" not in st.session_state:
+        st.session_state.ref_pd_by_okved = copy.deepcopy(DEFAULT_PD_BY_OKVED)
+    if "ref_scha_discount_rules" not in st.session_state:
+        st.session_state.ref_scha_discount_rules = copy.deepcopy(DEFAULT_SCHA_DISCOUNT_RULES)
+    if "receivables_report" not in st.session_state:
+        st.session_state.receivables_report = _empty_receivables_report()
 
 
 def _empty_loan_request() -> dict:
@@ -261,6 +272,14 @@ def get_contracts_for_counterparty(
             seen.add(contract_id)
 
     return sorted(matched, key=lambda item: item.get("date", ""), reverse=True)
+
+
+def get_source_contract_pdf() -> Path | None:
+    """PDF из папки «Договор» (первый найденный файл)."""
+    if not settings.contracts_source_dir.is_dir():
+        return None
+    pdfs = sorted(settings.contracts_source_dir.glob("*.pdf"))
+    return pdfs[0] if pdfs else None
 
 
 def get_contract_pdf_path(contract: dict[str, str]) -> Path:
@@ -617,3 +636,119 @@ def mark_tenant_outbound_sent(doc_id: str) -> bool:
             record["sent_at"] = datetime.now().strftime("%d.%m.%Y %H:%M")
             return True
     return False
+
+
+def _empty_receivables_report() -> dict:
+    return {
+        "id": str(uuid4()),
+        "zpif": "",
+        "report_date": datetime.now().date().isoformat(),
+        "status": "draft",
+        "loaded_from_avankor": False,
+        "approver_approvals": {},
+    }
+
+
+def get_receivables_report() -> dict:
+    init_references()
+    return st.session_state.receivables_report
+
+
+def reset_receivables_approvals() -> None:
+    report = get_receivables_report()
+    report["approver_approvals"] = {name: False for name, _role in get_approvers()}
+
+
+def all_receivables_approvers_approved(report: dict) -> bool:
+    approvals: dict = report.get("approver_approvals", {})
+    return bool(approvals) and all(approvals.values())
+
+
+def get_receivables_for_zpif(zpif_name: str) -> list[dict]:
+    init_references()
+    return [
+        item
+        for item in st.session_state.ref_receivables
+        if item.get("zpif") == zpif_name
+    ]
+
+
+def get_pd_for_okved(okved: str) -> float:
+    init_references()
+    normalized = str(okved).strip().replace(".", "")
+    for rule in st.session_state.ref_pd_by_okved:
+        prefix = str(rule["prefix"]).strip()
+        if normalized.startswith(prefix):
+            return float(rule["pd_pct"])
+    return 5.0
+
+
+def get_scha_discount_for_legal_form(legal_form: str) -> float:
+    init_references()
+    for rule in st.session_state.ref_scha_discount_rules:
+        if rule["legal_form"] == legal_form:
+            return float(rule["base_discount_pct"])
+    return 5.0
+
+
+def calculate_receivable_row(row: dict) -> dict:
+    nominal = float(row.get("nominal") or 0.0)
+    deposit = float(row.get("security_deposit") or 0.0)
+    pd_pct = get_pd_for_okved(str(row.get("okved", "")))
+    scha_discount_pct = get_scha_discount_for_legal_form(str(row.get("legal_form", "ЮЛ")))
+    total_discount_pct = min(scha_discount_pct + pd_pct, 100.0)
+    net_risk = max(0.0, nominal - deposit)
+    discount_amount = round(net_risk * total_discount_pct / 100, 2)
+    current_value = round(nominal - discount_amount, 2)
+
+    return {
+        **row,
+        "pd_pct": pd_pct,
+        "scha_discount_pct": scha_discount_pct,
+        "total_discount_pct": total_discount_pct,
+        "net_risk": net_risk,
+        "discount_amount": discount_amount,
+        "current_value": current_value,
+    }
+
+
+def calculate_receivables_report(zpif_name: str) -> list[dict]:
+    return [
+        calculate_receivable_row(row)
+        for row in get_receivables_for_zpif(zpif_name)
+    ]
+
+
+def build_receivables_export_csv(zpif_name: str, report_date: str) -> str:
+    rows = calculate_receivables_report(zpif_name)
+    header = (
+        "zpif;report_date;tenant;inn;contract;period;days_overdue;legal_form;okved;"
+        "nominal;security_deposit;pd_pct;scha_discount_pct;total_discount_pct;"
+        "discount_amount;current_value\n"
+    )
+    lines = [header]
+    for row in rows:
+        lines.append(
+            ";".join(
+                [
+                    zpif_name,
+                    report_date,
+                    str(row.get("tenant_name", "")),
+                    str(row.get("tenant_inn", "")),
+                    str(row.get("contract_number", "")),
+                    str(row.get("period", "")),
+                    str(row.get("days_overdue", "")),
+                    str(row.get("legal_form", "")),
+                    str(row.get("okved", "")),
+                    f"{row.get('nominal', 0):.2f}",
+                    f"{row.get('security_deposit', 0):.2f}",
+                    f"{row.get('pd_pct', 0):.2f}",
+                    f"{row.get('scha_discount_pct', 0):.2f}",
+                    f"{row.get('total_discount_pct', 0):.2f}",
+                    f"{row.get('discount_amount', 0):.2f}",
+                    f"{row.get('current_value', 0):.2f}",
+                ]
+            )
+            + "\n"
+        )
+    return "".join(lines)

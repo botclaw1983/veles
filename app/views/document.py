@@ -5,6 +5,7 @@ from pathlib import Path
 import streamlit as st
 
 from app.components.approval_status import render_approval_status, send_document_to_approval
+from app.components.contract_analysis import render_contract_analysis
 from app.components.counterparty_contracts import render_counterparty_contracts
 from app.components.pdf_viewer import render_pdf
 from app.services.document_store import get_document, save_document
@@ -569,11 +570,10 @@ def render() -> None:
 
     with col_doc:
         if doc.pdf_filename and Path(doc.pdf_filename).is_file():
-            render_pdf(doc.pdf_filename, height=920)
+            st.markdown("**Счёт**")
+            render_pdf(doc.pdf_filename, height=520)
         else:
             st.info("PDF-файл не найден.")
-
-        render_counterparty_contracts(doc)
 
     with col_side:
         _render_recognition(doc)
@@ -612,3 +612,10 @@ def render() -> None:
 
         if spec_dep_sent:
             st.caption("Документ уже отправлен в Спец.Деп.")
+
+    st.markdown("---")
+    col_contract, col_analysis = st.columns([3, 2], vertical_alignment="top")
+    with col_contract:
+        render_counterparty_contracts(doc)
+    with col_analysis:
+        render_contract_analysis(doc)

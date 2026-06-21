@@ -38,6 +38,23 @@ SYSTEM_PROMPT = (
     "Отвечай только валидным JSON-объектом с указанными ключами."
 )
 
+CONTRACT_ANALYSIS_SYSTEM_PROMPT = (
+    "Ты помощник бухгалтера управляющей компании ЗПИФ. "
+    "Анализируешь счета и договоры с контрагентами. Отвечай на русском языке."
+)
+
+DEFAULT_CONTRACT_ANALYSIS_PROMPT = """Сравни счёт контрагента и договор. Ответь структурированным текстом на русском языке:
+
+1. Контрагент прислал счёт на какую сумму и от какой даты (если видно на счёте).
+2. Сумма счёта соответствует или не соответствует условиям договора — объясни почему.
+3. По условиям договора, в какой срок нужно оплатить этот счёт (укажи количество дней и от какой даты отсчитывается срок).
+4. Рекомендуемая дата оплаты — как можно позже, но в пределах срока по договору (формат ДД.ММ.ГГГГ).
+5. Другие важные условия договора, влияющие на оплату (аванс, лимит, штрафы, НДС и т.п.).
+
+Важно: для управляющей компании ЗПИФ приоритет — оплатить счёт как можно позже, но не позже срока по договору.
+Если данных недостаточно — явно укажи, чего не хватает.
+Не используй markdown-заголовки — только нумерованный список или короткие абзацы."""
+
 _MAX_RECOGNITION_ATTEMPTS = 3
 
 @dataclass(frozen=True)
@@ -67,6 +84,7 @@ _STRING_FIELD_ORDER = [
 ]
 
 _LAST_RESPONSE_PATH = settings.data_dir / "ollama_last_response.txt"
+_LAST_CONTRACT_ANALYSIS_PATH = settings.data_dir / "ollama_last_contract_analysis.txt"
 
 
 @dataclass
@@ -459,3 +477,115 @@ def check_ollama_available() -> tuple[bool, str]:
         return True, ""
     except Exception as exc:  # noqa: BLE001 — показываем пользователю причину
         return False, f"Ollama недоступна ({settings.ollama_host}): {exc}"
+
+
+def _save_contract_analysis_response(content: str) -> Path:
+    _LAST_CONTRACT_ANALYSIS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    _LAST_CONTRACT_ANALYSIS_PATH.write_text(content, encoding="utf-8")
+    return _LAST_CONTRACT_ANALYSIS_PATH
+
+
+def _build_contract_analysis_context(
+    *,
+    counterparty_name: str = "",
+    counterparty_inn: str = "",
+    amount: float | None = None,
+    contract_number: str = "",
+    contract_date: str = "",
+    contract_title: str = "",
+) -> str:
+    lines = ["Контекст из формы Veles (может дополнять документы):"]
+    if counterparty_name:
+        lines.append(f"- Контрагент: {counterparty_name}")
+    if counterparty_inn:
+        lines.append(f"- ИНН контрагента: {counterparty_inn}")
+    if amount is not None:
+        lines.append(f"- Сумма в форме: {amount:,.2f} ₽".replace(",", " "))
+    if contract_title or contract_number:
+        contract_line = "- Договор: "
+        if contract_title:
+            contract_line += contract_title
+        if contract_number:
+            contract_line += f" № {contract_number}"
+        if contract_date:
+            contract_line += f" от {contract_date}"
+        lines.append(contract_line)
+    return "\n".join(lines)
+
+
+def analyze_contract_against_invoice(
+    invoice_pdf_path: Path | str,
+    contract_pdf_path: Path | str,
+    *,
+    prompt: str | None = None,
+    counterparty_name: str = "",
+    counterparty_inn: str = "",
+    amount: float | None = None,
+    contract_number: str = "",
+    contract_date: str = "",
+    contract_title: str = "",
+) -> str:
+    """Сравнивает счёт и договор через Ollama vision-модель, возвращает текстовый анализ."""
+    invoice_path = Path(invoice_pdf_path)
+    contract_path = Path(contract_pdf_path)
+    if not invoice_path.is_file():
+        raise FileNotFoundError(f"PDF счёта не найден: {invoice_path}")
+    if not contract_path.is_file():
+        raise FileNotFoundError(f"PDF договора не найден: {contract_path}")
+
+    invoice_images = pdf_pages_to_base64(
+        invoice_path,
+        max_pages=2,
+        dpi_scale=1.2,
+        max_dimension=1280,
+    )
+    contract_images = pdf_pages_to_base64(
+        contract_path,
+        max_pages=3,
+        dpi_scale=1.2,
+        max_dimension=1280,
+    )
+    if not invoice_images:
+        raise ValueError("PDF счёта не содержит страниц")
+    if not contract_images:
+        raise ValueError("PDF договора не содержит страниц")
+
+    context = _build_contract_analysis_context(
+        counterparty_name=counterparty_name,
+        counterparty_inn=counterparty_inn,
+        amount=amount,
+        contract_number=contract_number,
+        contract_date=contract_date,
+        contract_title=contract_title,
+    )
+    user_prompt = (prompt or DEFAULT_CONTRACT_ANALYSIS_PROMPT).strip()
+    user_prompt = (
+        f"{user_prompt}\n\n{context}\n\n"
+        "На изображениях: сначала страницы счёта, затем страницы договора."
+    )
+
+    response = _client().chat(
+        model=settings.ollama_model,
+        messages=[
+            {"role": "system", "content": CONTRACT_ANALYSIS_SYSTEM_PROMPT},
+            {
+                "role": "user",
+                "content": user_prompt,
+                "images": [*invoice_images, *contract_images],
+            },
+        ],
+        think=False,
+        options={
+            "num_ctx": max(settings.ollama_num_ctx, 8192),
+            "num_predict": 1024,
+            "temperature": 0.1,
+        },
+    )
+    content = (response.message.content or "").strip()
+    thinking = (response.message.thinking or "").strip()
+    result = content or thinking
+    if not result:
+        log_path = _save_contract_analysis_response("(пустой ответ)")
+        raise ValueError(f"Модель не вернула анализ. Ответ сохранён в: {log_path}")
+    _save_contract_analysis_response(result)
+    return result

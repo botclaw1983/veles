@@ -7,11 +7,27 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(ROOT_DIR / ".env")
 
 
+def _inject_streamlit_secrets() -> None:
+    """Секреты Streamlit Cloud (st.secrets) → os.environ для Settings."""
+    try:
+        import streamlit as st
+
+        for key, value in st.secrets.items():
+            if isinstance(value, (str, int, float, bool)):
+                os.environ.setdefault(str(key), str(value))
+    except Exception:
+        pass
+
+
+_inject_streamlit_secrets()
+
+
 class Settings:
     app_title: str = "Veles"
     data_dir: Path = ROOT_DIR / "data" / "documents"
     pdf_docs_dir: Path = ROOT_DIR / "pdf_docs"
     contracts_dir: Path = ROOT_DIR / "contracts"
+    contracts_source_dir: Path = ROOT_DIR / "Договор"
 
     diadoc_api_url: str = os.getenv("DIADOC_API_URL", "https://diadoc-api.kontur.ru")
     diadoc_client_id: str | None = os.getenv("DIADOC_CLIENT_ID")
@@ -54,3 +70,4 @@ settings = Settings()
 settings.data_dir.mkdir(parents=True, exist_ok=True)
 settings.pdf_docs_dir.mkdir(parents=True, exist_ok=True)
 settings.contracts_dir.mkdir(parents=True, exist_ok=True)
+settings.contracts_source_dir.mkdir(parents=True, exist_ok=True)

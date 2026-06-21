@@ -405,3 +405,70 @@ DEFAULT_TENANTS: list[dict] = [
         "repair_note": "",
     },
 ]
+
+DEFAULT_PD_BY_OKVED: list[dict[str, str | float]] = [
+    {"prefix": "47", "pd_pct": 3.5, "industry": "Торговля розничная"},
+    {"prefix": "56", "pd_pct": 5.2, "industry": "Общественное питание"},
+    {"prefix": "35", "pd_pct": 2.8, "industry": "Производство и распределение энергии"},
+    {"prefix": "62", "pd_pct": 4.0, "industry": "Разработка ПО и IT-услуги"},
+]
+
+DEFAULT_SCHA_DISCOUNT_RULES: list[dict[str, str | float]] = [
+    {"legal_form": "ЮЛ", "base_discount_pct": 5.0},
+    {"legal_form": "ИП", "base_discount_pct": 8.0},
+]
+
+DEFAULT_RECEIVABLES: list[dict] = [
+    {
+        "id": "recv-1",
+        "zpif": "ЗПИФ «Весы»",
+        "tenant_name": "ООО «ФИРМА 1»",
+        "tenant_inn": "7701234567",
+        "contract_number": "Ф1-015/2024",
+        "period": "05.2026",
+        "nominal": 185_000.0,
+        "days_overdue": 45,
+        "legal_form": "ЮЛ",
+        "okved": "47.11",
+        "security_deposit": 370_000.0,
+    },
+    {
+        "id": "recv-2",
+        "zpif": "ЗПИФ «Весы»",
+        "tenant_name": "ООО «Ромашка»",
+        "tenant_inn": "7710123456",
+        "contract_number": "РМ-007/2024",
+        "period": "05.2026",
+        "nominal": 92_500.0,
+        "days_overdue": 15,
+        "legal_form": "ЮЛ",
+        "okved": "56.10",
+        "security_deposit": 185_000.0,
+    },
+    {
+        "id": "recv-3",
+        "zpif": "ЗПИФ «Коммерческая недвижимость»",
+        "tenant_name": "АО «Энергосервис»",
+        "tenant_inn": "7720987654",
+        "contract_number": "ЭС-033/2023",
+        "period": "04.2026",
+        "nominal": 310_000.0,
+        "days_overdue": 60,
+        "legal_form": "ЮЛ",
+        "okved": "35.30",
+        "security_deposit": 150_000.0,
+    },
+    {
+        "id": "recv-4",
+        "zpif": "ЗПИФ «Офисные помещения»",
+        "tenant_name": "ИП Сидоров С.С.",
+        "tenant_inn": "773011122233",
+        "contract_number": "—",
+        "period": "05.2026",
+        "nominal": 48_000.0,
+        "days_overdue": 30,
+        "legal_form": "ИП",
+        "okved": "62.01",
+        "security_deposit": 24_000.0,
+    },
+]
