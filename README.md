@@ -27,18 +27,18 @@
 
 ![Реестр документов — входящие из Diadoc и локальной папки](docs/screenshots/documents.jpg)
 
-![Прототип Veles](docs/screenshots/Pasted%20image%202026062134947.png)
-![Прототип Veles](docs/screenshots/Pasted%20image%202026062135123.png)
-![Прототип Veles](docs/screenshots/Pasted%20image%202026062135145.png)
-![Прототип Veles](docs/screenshots/Pasted%20image%202026062135218.png)
+![Прототип Veles](docs/screenshots/prototype-03.png)
+![Прототип Veles](docs/screenshots/prototype-04.png)
+![Прототип Veles](docs/screenshots/prototype-05.png)
+![Прототип Veles](docs/screenshots/prototype-06.png)
 
-![Прототип Veles](docs/screenshots/Pasted%20image%202026062135250.png)
-![Прототип Veles](docs/screenshots/Pasted%20image%202026062135447.png)
-![Прототип Veles](docs/screenshots/Pasted%20image%202026062135502.png)
-![Прототип Veles](docs/screenshots/Pasted%20image%202026062135511.png)
-![Прототип Veles](docs/screenshots/Pasted%20image%202026062135542.png)
-![Прототип Veles](docs/screenshots/Pasted%20image%202026062135613.png)
-![Прототип Veles](docs/screenshots/Pasted%20image%202026062135630.png)
+![Прототип Veles](docs/screenshots/prototype-07.png)
+![Прототип Veles](docs/screenshots/prototype-08.png)
+![Прототип Veles](docs/screenshots/prototype-09.png)
+![Прототип Veles](docs/screenshots/prototype-10.png)
+![Прототип Veles](docs/screenshots/prototype-11.png)
+![Прототип Veles](docs/screenshots/prototype-12.png)
+![Прототип Veles](docs/screenshots/prototype-13.png)
 
 ## Запуск (прототип на Streamlit)
 
