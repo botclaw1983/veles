@@ -23,9 +23,6 @@
 
 Ссылка на Holst https://app.holst.so/share/b/e5a91c3c-098a-4b0e-9a4e-7341402ae85d
 
-<img width="1717" height="793" alt="image" src="https://github.com/user-attachments/assets/3c973938-7936-4bc0-b6a3-5be2a3ed9daf" />
-
-
 ![Экран входа в прототип Veles](docs/screenshots/login.jpg)
 
 ![Реестр документов — входящие из Diadoc и локальной папки](docs/screenshots/documents.jpg)
@@ -34,7 +31,6 @@
 ![Прототип Veles](docs/screenshots/prototype-04.png)
 ![Прототип Veles](docs/screenshots/prototype-05.png)
 ![Прототип Veles](docs/screenshots/prototype-06.png)
-
 ![Прототип Veles](docs/screenshots/prototype-07.png)
 ![Прототип Veles](docs/screenshots/prototype-08.png)
 ![Прототип Veles](docs/screenshots/prototype-09.png)
