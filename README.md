@@ -30,7 +30,12 @@
 ![[Pasted image 20260621235218.png]]
 
 ![[Pasted image 20260621235250.png]]
-
+![[Pasted image 20260621235447.png]]
+![[Pasted image 20260621235502.png]]
+![[Pasted image 20260621235511.png]]
+![[Pasted image 20260621235542.png]]
+![[Pasted image 20260621235613.png]]
+![[Pasted image 20260621235630.png]]
 
 
 ## Запуск (прототип на Streamlit)
