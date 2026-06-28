@@ -1,802 +1,1189 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bioc="http://bpmn.io/schema/bpmn/biocolor/1.0" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:color="http://www.omg.org/spec/BPMN/non-normative/color/1.0" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:open-bpmn="http://open-bpmn.org/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" exporter="Veles" exporterVersion="1.2" id="Definitions_2_1_Invoice" targetNamespace="http://veles.local/bpmn/2.1">
-  <collaboration id="Collaboration_2_1">
-    <participant id="Participant_Pool" name="Входящий счёт на оплату (as-is)" processRef="Process_2_1">
-      <documentation id="documentation_WZBjQw"/>
-    </participant>
-    <participant id="participant_OCNzEg" name="Default Process" processRef="process_DhthNA"/>
-  </collaboration>
-  <process id="Process_2_1" isExecutable="false" name="Diadoc → диск → бухгалтер → согласование → банк-клиент" processType="Private">
-    <laneSet id="LaneSet_2_1">
-      <lane id="Lane_Diadoc" name="Diadoc">
-        <documentation id="documentation_IbxBWg"/>
-        <flowNodeRef>StartEvent_1</flowNodeRef>
-        <flowNodeRef>Task_IncomingDiadoc</flowNodeRef>
-      </lane>
-      <lane id="Lane_BackOffice" name="Сотрудники бэк-офиса">
-        <documentation id="documentation_7Z0R0g"/>
-        <flowNodeRef>Task_OpenDiadoc</flowNodeRef>
-        <flowNodeRef>Task_DetermineZPIF</flowNodeRef>
-        <flowNodeRef>Task_SendBOReview</flowNodeRef>
-        <flowNodeRef>Gateway_BOReviewSplit</flowNodeRef>
-        <flowNodeRef>Task_BOReview1</flowNodeRef>
-        <flowNodeRef>Task_BOReview2</flowNodeRef>
-        <flowNodeRef>Gateway_BOReviewJoin</flowNodeRef>
-        <flowNodeRef>Gateway_BOApproved</flowNodeRef>
-        <flowNodeRef>Task_SaveFolder</flowNodeRef>
-        <flowNodeRef>Gateway_ChooseAccountant</flowNodeRef>
-        <flowNodeRef>Task_SendEmail1</flowNodeRef>
-        <flowNodeRef>Task_SendEmail2</flowNodeRef>
-        <flowNodeRef>Task_SendEmail3</flowNodeRef>
-      </lane>
-      <lane id="Lane_Accountants" name="3 бухгалтера">
-        <documentation id="documentation_UMrzMA"/>
-        <flowNodeRef>Task_Receive1</flowNodeRef>
-        <flowNodeRef>Task_Receive2</flowNodeRef>
-        <flowNodeRef>Task_Receive3</flowNodeRef>
-        <flowNodeRef>Task_Prepare1</flowNodeRef>
-        <flowNodeRef>Task_Prepare2</flowNodeRef>
-        <flowNodeRef>Task_Prepare3</flowNodeRef>
-        <flowNodeRef>Gateway_AccMerge</flowNodeRef>
-        <flowNodeRef>Task_CorrectApproval</flowNodeRef>
-        <flowNodeRef>Gateway_Electricity</flowNodeRef>
-        <flowNodeRef>Task_SendToTC</flowNodeRef>
-        <flowNodeRef>Task_SendToApprovers</flowNodeRef>
-        <flowNodeRef>Task_WaitResponses</flowNodeRef>
-        <flowNodeRef>Gateway_AllSix</flowNodeRef>
-      </lane>
-      <lane id="Lane_TC" name="Сотрудники торгового центра">
-        <documentation id="documentation_90sKJg"/>
-        <flowNodeRef>Task_TCReceive</flowNodeRef>
-        <flowNodeRef>Task_TCReview</flowNodeRef>
-        <flowNodeRef>Task_TCReply</flowNodeRef>
-      </lane>
-      <lane id="Lane_Approvers" name="6 согласующих">
-        <documentation id="documentation_HzZsRQ"/>
-        <flowNodeRef>Task_ApproverReceive</flowNodeRef>
-        <flowNodeRef>Task_ApproverReview</flowNodeRef>
-        <flowNodeRef>Gateway_Approved</flowNodeRef>
-        <flowNodeRef>Task_ApproverApprove</flowNodeRef>
-        <flowNodeRef>Task_ApproverReject</flowNodeRef>
-      </lane>
-      <lane id="Lane_Assistant" name="Помощник бухгалтера">
-        <documentation id="documentation_T10dzw"/>
-        <flowNodeRef>Task_UploadBank</flowNodeRef>
-      </lane>
-      <lane id="Lane_Chief" name="Главный бухгалтер / заместитель">
-        <documentation id="documentation_NVbOsQ"/>
-        <flowNodeRef>Task_VerifyOutlook</flowNodeRef>
-        <flowNodeRef>Task_ApproveBank</flowNodeRef>
-      </lane>
-      <lane id="Lane_SpecDep" name="Спецдепозитарий">
-        <documentation id="documentation_CM7yUA"/>
-        <flowNodeRef>Task_SignSpecDep</flowNodeRef>
-        <flowNodeRef>EndEvent_1</flowNodeRef>
-      </lane>
-    </laneSet>
-    <startEvent id="StartEvent_1" name="Поступление документов от контрагента">
-      <documentation id="documentation_q0PC0g"/>
-    </startEvent>
-    <serviceTask id="Task_IncomingDiadoc" name="Входящие документы&#10;поступают в Diadoc">
-      <documentation id="documentation_ax68pA"/>
-    </serviceTask>
-    <userTask id="Task_OpenDiadoc" name="Открыть документы&#10;в приложении Diadoc">
-      <documentation id="documentation_z6xtIQ"/>
-    </userTask>
-    <userTask id="Task_DetermineZPIF" name="Определить ЗПИФ&#10;по документу">
-      <documentation id="documentation_WM03FA"/>
-    </userTask>
-    <userTask id="Task_SendBOReview" name="Отправить счёт на проверку&#10;двум сотрудникам бэк-офиса&#10;по email">
-      <documentation id="documentation_cGzH1Q"/>
-    </userTask>
-    <parallelGateway id="Gateway_BOReviewSplit" name="">
-      <documentation id="documentation_Iq5DbQ"/>
-    </parallelGateway>
-    <userTask id="Task_BOReview1" name="Сотрудник бэк-офиса 1:&#10;проверить счёт&#10;(договор, правомерность,&#10;услуги оказаны)">
-      <documentation id="documentation_eQTrXg"/>
-    </userTask>
-    <userTask id="Task_BOReview2" name="Сотрудник бэк-офиса 2:&#10;проверить счёт&#10;(договор, правомерность,&#10;услуги оказаны)">
-      <documentation id="documentation_Trgbdg"/>
-    </userTask>
-    <parallelGateway id="Gateway_BOReviewJoin" name="">
-      <documentation id="documentation_fP8qHA"/>
-    </parallelGateway>
-    <exclusiveGateway default="Flow_BOApproved_No" id="Gateway_BOApproved" name="Проверка&#10;пройдена?">
-      <documentation id="documentation_PP0sKQ"/>
-    </exclusiveGateway>
-    <userTask id="Task_SaveFolder" name="Сохранить документ&#10;в папку ЗПИФа&#10;на локальном диске">
-      <documentation id="documentation_tNFsNQ"/>
-    </userTask>
-    <exclusiveGateway default="Flow_Choose_Acc3" id="Gateway_ChooseAccountant" name="Кому из бухгалтеров&#10;отправить счёт?">
-      <documentation id="documentation_wV0Oqg"/>
-    </exclusiveGateway>
-    <userTask id="Task_SendEmail1" name="Отправить копию счёта&#10;бухгалтеру 1 по email">
-      <documentation id="documentation_c5Q80w"/>
-    </userTask>
-    <userTask id="Task_SendEmail2" name="Отправить копию счёта&#10;бухгалтеру 2 по email">
-      <documentation id="documentation_oSveCQ"/>
-    </userTask>
-    <userTask id="Task_SendEmail3" name="Отправить копию счёта&#10;бухгалтеру 3 по email">
-      <documentation id="documentation_4IPwKw"/>
-    </userTask>
-    <userTask id="Task_Receive1" name="Бухгалтер 1:&#10;получить счёт по email">
-      <documentation id="documentation_Latx9A"/>
-    </userTask>
-    <userTask id="Task_Receive2" name="Бухгалтер 2:&#10;получить счёт по email">
-      <documentation id="documentation_b0O0Pw"/>
-    </userTask>
-    <userTask id="Task_Receive3" name="Бухгалтер 3:&#10;получить счёт по email">
-      <documentation id="documentation_5bvp4A"/>
-    </userTask>
-    <userTask id="Task_Prepare1" name="Бухгалтер 1:&#10;лист согласования&#10;для рассылки по почте">
-      <documentation id="documentation_bfHpAA"/>
-    </userTask>
-    <userTask id="Task_Prepare2" name="Бухгалтер 2:&#10;лист согласования&#10;для рассылки по почте">
-      <documentation id="documentation_FZ9n1g"/>
-    </userTask>
-    <userTask id="Task_Prepare3" name="Бухгалтер 3:&#10;лист согласования&#10;для рассылки по почте">
-      <documentation id="documentation_BwQMSA"/>
-    </userTask>
-    <exclusiveGateway id="Gateway_AccMerge" name="">
-      <documentation id="documentation_GSqV1w"/>
-    </exclusiveGateway>
-    <userTask id="Task_CorrectApproval" name="Бухгалтер: скорректировать&#10;лист согласования&#10;и повторить рассылку">
-      <documentation id="documentation_7gJoMQ"/>
-    </userTask>
-    <exclusiveGateway default="Flow_Elec_No" id="Gateway_Electricity" name="Счёт за&#10;электричество?">
-      <documentation id="documentation_Cyizxg"/>
-    </exclusiveGateway>
-    <userTask id="Task_SendToTC" name="Отправить счёт&#10;сотрудникам ТЦ&#10;на проверку">
-      <documentation id="documentation_52WGYg"/>
-    </userTask>
-    <userTask id="Task_SendToApprovers" name="Отправить счёт&#10;6 согласующим&#10;по email">
-      <documentation id="documentation_IOAH8w"/>
-    </userTask>
-    <userTask id="Task_WaitResponses" name="Ожидать ответные&#10;письма в почте">
-      <documentation id="documentation_uatMKQ"/>
-    </userTask>
-    <exclusiveGateway default="Flow_AllSix_No" id="Gateway_AllSix" name="Все 6&#10;согласовали?">
-      <documentation id="documentation_PaoyEA"/>
-    </exclusiveGateway>
-    <userTask id="Task_TCReceive" name="Получить счёт&#10;за электричество">
-      <documentation id="documentation_0Oi2rA"/>
-    </userTask>
-    <userTask id="Task_TCReview" name="Проверить документ&#10;со своей стороны">
-      <documentation id="documentation_7PZ9jg"/>
-    </userTask>
-    <userTask id="Task_TCReply" name="Ответить по email">
-      <documentation id="documentation_uJ1YkA"/>
-    </userTask>
-    <userTask id="Task_ApproverReceive" name="Получить письмо&#10;с документом">
-      <documentation id="documentation_rDhRQg"/>
-    </userTask>
-    <userTask id="Task_ApproverReview" name="Рассмотреть документ">
-      <documentation id="documentation_rTCjpw"/>
-    </userTask>
-    <exclusiveGateway default="Flow_Approved_No" id="Gateway_Approved" name="Согласовано?">
-      <documentation id="documentation_U0ldKA"/>
-    </exclusiveGateway>
-    <userTask id="Task_ApproverApprove" name="Ответное письмо&#10;с согласованием">
-      <documentation id="documentation_A5rKiw"/>
-    </userTask>
-    <userTask id="Task_ApproverReject" name="Ответное письмо&#10;с отказом или правками">
-      <documentation id="documentation_OgDrzw"/>
-    </userTask>
-    <userTask id="Task_UploadBank" name="Загрузить документ&#10;на оплату в банк-клиент">
-      <documentation id="documentation_r27Mww"/>
-    </userTask>
-    <userTask id="Task_VerifyOutlook" name="Проверить в Outlook:&#10;все ли 6 согласовали">
-      <documentation id="documentation_TvexnQ"/>
-    </userTask>
-    <userTask id="Task_ApproveBank" name="Подписать платёж&#10;в банк-клиент">
-      <documentation id="documentation_agsGEA"/>
-    </userTask>
-    <userTask id="Task_SignSpecDep" name="Подписать платёж&#10;второй подписью&#10;в банк-клиент">
-      <documentation id="documentation_Th0MJQ"/>
-    </userTask>
-    <endEvent id="EndEvent_1" name="Платёж оплачен">
-      <documentation id="documentation_J651vQ"/>
-    </endEvent>
-    <sequenceFlow id="Flow_Start_Diadoc" sourceRef="StartEvent_1" targetRef="Task_IncomingDiadoc">
-      <documentation id="documentation_J17w9A"/>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_Diadoc_Open" sourceRef="Task_IncomingDiadoc" targetRef="Task_OpenDiadoc">
-      <documentation id="documentation_VfBuCQ"/>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_Open_ZPIF" sourceRef="Task_OpenDiadoc" targetRef="Task_DetermineZPIF">
-      <documentation id="documentation_04jCjQ"/>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_ZPIF_SendBOReview" sourceRef="Task_DetermineZPIF" targetRef="Task_SendBOReview">
-      <documentation id="documentation_lFvfLw"/>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_SendBO_Split" sourceRef="Task_SendBOReview" targetRef="Gateway_BOReviewSplit">
-      <documentation id="documentation_c5oP7g"/>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_Split_BOReview1" sourceRef="Gateway_BOReviewSplit" targetRef="Task_BOReview1">
-      <documentation id="documentation_ABEC7g"/>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_Split_BOReview2" sourceRef="Gateway_BOReviewSplit" targetRef="Task_BOReview2">
-      <documentation id="documentation_BnB0Kg"/>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_BOReview1_Join" sourceRef="Task_BOReview1" targetRef="Gateway_BOReviewJoin">
-      <documentation id="documentation_0g0Ghw"/>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_BOReview2_Join" sourceRef="Task_BOReview2" targetRef="Gateway_BOReviewJoin">
-      <documentation id="documentation_tP8QDg"/>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_Join_BOApproved" sourceRef="Gateway_BOReviewJoin" targetRef="Gateway_BOApproved">
-      <documentation id="documentation_a6Mmfg"/>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_BOApproved_Yes" name="Да" sourceRef="Gateway_BOApproved" targetRef="Task_SaveFolder">
-      <documentation id="documentation_7mNu4w"/>
-      <conditionExpression xsi:type="tFormalExpression">${boReviewPassed == true}</conditionExpression>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_BOApproved_No" name="Нет" sourceRef="Gateway_BOApproved" targetRef="Task_SendBOReview">
-      <documentation id="documentation_3OSkZQ"/>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_Save_Choose" sourceRef="Task_SaveFolder" targetRef="Gateway_ChooseAccountant">
-      <documentation id="documentation_Won1Rw"/>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_Choose_Acc1" name="Бухгалтер 1" sourceRef="Gateway_ChooseAccountant" targetRef="Task_SendEmail1">
-      <documentation id="documentation_biu4Fw"/>
-      <conditionExpression xsi:type="tFormalExpression">${accountant == 1}</conditionExpression>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_Choose_Acc2" name="Бухгалтер 2" sourceRef="Gateway_ChooseAccountant" targetRef="Task_SendEmail2">
-      <documentation id="documentation_ovf01w"/>
-      <conditionExpression xsi:type="tFormalExpression">${accountant == 2}</conditionExpression>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_Choose_Acc3" name="Бухгалтер 3" sourceRef="Gateway_ChooseAccountant" targetRef="Task_SendEmail3">
-      <documentation id="documentation_YroSFg"/>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_Email1_Receive1" sourceRef="Task_SendEmail1" targetRef="Task_Receive1">
-      <documentation id="documentation_KryG0Q"/>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_Email2_Receive2" sourceRef="Task_SendEmail2" targetRef="Task_Receive2">
-      <documentation id="documentation_i2byrg"/>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_Email3_Receive3" sourceRef="Task_SendEmail3" targetRef="Task_Receive3">
-      <documentation id="documentation_qG7mnA"/>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_Receive1_Prepare1" sourceRef="Task_Receive1" targetRef="Task_Prepare1">
-      <documentation id="documentation_OrkV6g"/>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_Receive2_Prepare2" sourceRef="Task_Receive2" targetRef="Task_Prepare2">
-      <documentation id="documentation_IKCzdA"/>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_Receive3_Prepare3" sourceRef="Task_Receive3" targetRef="Task_Prepare3">
-      <documentation id="documentation_A72OSw"/>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_Prepare1_Merge" sourceRef="Task_Prepare1" targetRef="Gateway_AccMerge">
-      <documentation id="documentation_Zuf7EQ"/>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_Prepare2_Merge" sourceRef="Task_Prepare2" targetRef="Gateway_AccMerge">
-      <documentation id="documentation_HnseOw"/>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_Prepare3_Merge" sourceRef="Task_Prepare3" targetRef="Gateway_AccMerge">
-      <documentation id="documentation_oCArCA"/>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_Merge_Elec" sourceRef="Gateway_AccMerge" targetRef="Gateway_Electricity">
-      <documentation id="documentation_tq90bw"/>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_Elec_Yes" name="Да" sourceRef="Gateway_Electricity" targetRef="Task_SendToTC">
-      <documentation id="documentation_TRKMNw"/>
-      <conditionExpression xsi:type="tFormalExpression">${electricity == true}</conditionExpression>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_Elec_No" name="Нет" sourceRef="Gateway_Electricity" targetRef="Task_SendToApprovers">
-      <documentation id="documentation_BJ54Wg"/>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_TC_Send" sourceRef="Task_SendToTC" targetRef="Task_TCReceive">
-      <documentation id="documentation_5hhJFA"/>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_TCReceive_Review" sourceRef="Task_TCReceive" targetRef="Task_TCReview">
-      <documentation id="documentation_F48cag"/>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_TCReview_Reply" sourceRef="Task_TCReview" targetRef="Task_TCReply">
-      <documentation id="documentation_QdgUvg"/>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_TCReply_Approvers" sourceRef="Task_TCReply" targetRef="Task_SendToApprovers">
-      <documentation id="documentation_dmWFlg"/>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_Send_ApproverReceive" sourceRef="Task_SendToApprovers" targetRef="Task_ApproverReceive">
-      <documentation id="documentation_bfUNMw"/>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_ApproverReceive_Review" sourceRef="Task_ApproverReceive" targetRef="Task_ApproverReview">
-      <documentation id="documentation_xevAKg"/>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_Review_Gateway" sourceRef="Task_ApproverReview" targetRef="Gateway_Approved">
-      <documentation id="documentation_n8LDVg"/>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_Approved_Yes" name="Да" sourceRef="Gateway_Approved" targetRef="Task_ApproverApprove">
-      <documentation id="documentation_IWjHsQ"/>
-      <conditionExpression xsi:type="tFormalExpression">${approved == true}</conditionExpression>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_Approved_No" name="Нет" sourceRef="Gateway_Approved" targetRef="Task_ApproverReject">
-      <documentation id="documentation_J0gweA"/>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_Approve_Wait" sourceRef="Task_ApproverApprove" targetRef="Task_WaitResponses">
-      <documentation id="documentation_Eq0C0g"/>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_Reject_Correct" sourceRef="Task_ApproverReject" targetRef="Task_CorrectApproval">
-      <documentation id="documentation_NXsn6A"/>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_Correct_Elec" sourceRef="Task_CorrectApproval" targetRef="Gateway_Electricity">
-      <documentation id="documentation_Wfa6Vg"/>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_Send_Wait" sourceRef="Task_SendToApprovers" targetRef="Task_WaitResponses">
-      <documentation id="documentation_QUyUAQ"/>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_Wait_AllSix" sourceRef="Task_WaitResponses" targetRef="Gateway_AllSix">
-      <documentation id="documentation_pExHBw"/>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_AllSix_Yes" name="Да" sourceRef="Gateway_AllSix" targetRef="Task_UploadBank">
-      <documentation id="documentation_5sCFaQ"/>
-      <conditionExpression xsi:type="tFormalExpression">${allApproved == true}</conditionExpression>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_AllSix_No" name="Нет" sourceRef="Gateway_AllSix" targetRef="Task_WaitResponses">
-      <documentation id="documentation_HARsTQ"/>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_Upload_Verify" sourceRef="Task_UploadBank" targetRef="Task_VerifyOutlook">
-      <documentation id="documentation_P11srQ"/>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_Verify_Approve" sourceRef="Task_VerifyOutlook" targetRef="Task_ApproveBank">
-      <documentation id="documentation_4ZrU5Q"/>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_Approve_SignSpecDep" sourceRef="Task_ApproveBank" targetRef="Task_SignSpecDep">
-      <documentation id="documentation_UVJZHw"/>
-    </sequenceFlow>
-    <sequenceFlow id="Flow_SignSpecDep_End" sourceRef="Task_SignSpecDep" targetRef="EndEvent_1">
-      <documentation id="documentation_7sK0BQ"/>
-    </sequenceFlow>
-  </process>
-  <process definitionalCollaborationRef="Collaboration_2_1" id="process_DhthNA" name="Default Process" processType="Public">
-    <documentation id="documentation_zpIFKg"/>
-    <extensionElements>
-      <open-bpmn:auto-align/>
-    </extensionElements>
-  </process>
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bioc="http://bpmn.io/schema/bpmn/biocolor/1.0" xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:color="http://www.omg.org/spec/BPMN/non-normative/color/1.0" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_2_1_Invoice" targetNamespace="http://bpmn.io/schema/bpmn" exporter="bpmn-js (https://demo.bpmn.io)" exporterVersion="18.19.0">
+  <bpmn:collaboration id="Collaboration_2_1">
+    <bpmn:participant id="Participant_Pool" name="Входящий счёт на оплату (as-is)" processRef="Process_2_1">
+      <bpmn:documentation id="documentation_WZBjQw" />
+    </bpmn:participant>
+  </bpmn:collaboration>
+  <bpmn:process id="Process_2_1" name="Diadoc → диск → бухгалтер → согласование → банк-клиент" isExecutable="false">
+    <bpmn:laneSet id="LaneSet_2_1">
+      <bpmn:lane id="Lane_FinDirector" name="Финансовый&#10;директор">
+        <bpmn:documentation id="documentation_FinDir" />
+        <bpmn:flowNodeRef>Task_FinDirectorReceive</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_FinApproved</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_FinDirectorApprove</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Activity_1b846h7</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_GenDirector" name="Генеральный&#10;директор">
+        <bpmn:documentation id="documentation_gd_lane" />
+        <bpmn:flowNodeRef>Task_CheckFolder1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_NoInvoice1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_GenDirectorApproved</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_GenDirectorApprove</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Activity_1l3yb1x</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_GenDirectorReceive</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Invoice1</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_SpecDep" name="Спецдепозитарий">
+        <bpmn:documentation id="documentation_CM7yUA" />
+        <bpmn:flowNodeRef>Task_SpecdepReceive</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Activity_1p8lnsw</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_1</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Chief" name="Главный бухгалтер / заместитель">
+        <bpmn:documentation id="documentation_NVbOsQ" />
+        <bpmn:flowNodeRef>EndEvent_NoInvoice3</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ChiefReceive</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ApproveBank</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_VerifyOutlook</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Assistant" name="Помощник бухгалтера / бухгалтер">
+        <bpmn:documentation id="documentation_T10dzw" />
+        <bpmn:flowNodeRef>Gateway_AccSplit</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CheckFolder2</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Invoice2</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CheckFolder3</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Invoice3</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_NoInvoice2</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_InvoiceFoundMerge</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CheckBalances</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_SendApproval</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CorrectApproval</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_WaitResponses</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CreateAvancor</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_05z2oio</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_UploadBank</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ExportAvancor</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_BOReview2</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Approvers" name="Контролёр">
+        <bpmn:documentation id="documentation_HzZsRQ" />
+        <bpmn:flowNodeRef>Task_ApproverReceive</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Approved</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ApproverApprove</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Activity_1ud0z9y</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_TC" name="Сотрудники торгового центра">
+        <bpmn:documentation id="documentation_90sKJg" />
+        <bpmn:flowNodeRef>Activity_09g4bc2</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Accountants" name="Недвижимость">
+        <bpmn:documentation id="documentation_UMrzMA" />
+        <bpmn:flowNodeRef>Gateway_RealEstateElec</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_RealEstateSendTC</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Activity_1ai17lm</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_TCReview</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_RealEstateReceive</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_18l7h42</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Activity_0aiy2z4</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_TCReply</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_BOReview1</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_BackOffice" name="Сотрудники бэк-офиса">
+        <bpmn:documentation id="documentation_7Z0R0g" />
+        <bpmn:flowNodeRef>Task_OpenDiadoc</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_DetermineZPIF</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_SendBOReview</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_BOReviewSplit</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_BOReviewJoin</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_BOApproved</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_SignDiadoc</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_DownloadSigned</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_PostDownloadSplit</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Diadoc" name="Diadoc">
+        <bpmn:documentation id="documentation_IbxBWg" />
+        <bpmn:flowNodeRef>StartEvent_1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_IncomingDiadoc</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_BOReviewFailed</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_SaveEDO</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="StartEvent_1" name="Поступление документов от контрагента">
+      <bpmn:documentation id="documentation_q0PC0g" />
+    </bpmn:startEvent>
+    <bpmn:serviceTask id="Task_IncomingDiadoc" name="Входящие документы&#10;поступают в Diadoc">
+      <bpmn:documentation id="documentation_ax68pA" />
+    </bpmn:serviceTask>
+    <bpmn:userTask id="Task_OpenDiadoc" name="Открыть документы&#10;в приложении Diadoc">
+      <bpmn:documentation id="documentation_z6xtIQ" />
+    </bpmn:userTask>
+    <bpmn:userTask id="Task_DetermineZPIF" name="Определить ЗПИФ&#10;по документу">
+      <bpmn:documentation id="documentation_WM03FA" />
+    </bpmn:userTask>
+    <bpmn:userTask id="Task_SendBOReview" name="Отправить счёт на проверку&#10;недвижимости и бухгалтеру">
+      <bpmn:documentation id="documentation_cGzH1Q" />
+    </bpmn:userTask>
+    <bpmn:parallelGateway id="Gateway_BOReviewSplit" name="">
+      <bpmn:documentation id="documentation_Iq5DbQ" />
+    </bpmn:parallelGateway>
+    <bpmn:parallelGateway id="Gateway_BOReviewJoin" name="">
+      <bpmn:documentation id="documentation_fP8qHA" />
+    </bpmn:parallelGateway>
+    <bpmn:exclusiveGateway id="Gateway_BOApproved" name="Проверка&#10;пройдена?" default="Flow_BOApproved_No">
+      <bpmn:documentation id="documentation_PP0sKQ" />
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="Task_SignDiadoc" name="Заходит в Diadoc&#10;и подписывает">
+      <bpmn:documentation id="documentation_Sign" />
+    </bpmn:userTask>
+    <bpmn:userTask id="Task_DownloadSigned" name="Скачивает&#10;подписанный файл">
+      <bpmn:documentation id="documentation_Download" />
+    </bpmn:userTask>
+    <bpmn:parallelGateway id="Gateway_PostDownloadSplit">
+      <bpmn:documentation id="documentation_PostSplit" />
+    </bpmn:parallelGateway>
+    <bpmn:userTask id="Task_SendSpecdep" name="Отправляет файл&#10;в Спецдеп">
+      <bpmn:documentation id="documentation_SendSpec" />
+    </bpmn:userTask>
+    <bpmn:endEvent id="EndEvent_BOReviewFailed" name="Уточнить возможные причины&#10;несогласования и действия">
+      <bpmn:documentation id="documentation_BOFail" />
+    </bpmn:endEvent>
+    <bpmn:userTask id="Task_SpecdepReceive" name="Спецдепозитарий:&#10;получить файл">
+      <bpmn:documentation id="documentation_SpecRec" />
+    </bpmn:userTask>
+    <bpmn:parallelGateway id="Gateway_AccSplit">
+      <bpmn:documentation id="documentation_AccSplit" />
+    </bpmn:parallelGateway>
+    <bpmn:userTask id="Task_CheckFolder2" name="Бухгалтер 2:&#10;зайти в свои папки&#10;на ЭДО">
+      <bpmn:documentation id="documentation_CF2" />
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="Gateway_Invoice2" name="В папке&#10;есть счёт?" default="Flow_Invoice2_No">
+      <bpmn:documentation id="documentation_Inv2" />
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="Task_CheckFolder3" name="Бухгалтер 3:&#10;зайти в свои папки&#10;на ЭДО">
+      <bpmn:documentation id="documentation_CF3" />
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="Gateway_Invoice3" name="В папке&#10;есть счёт?" default="Flow_Invoice3_No">
+      <bpmn:documentation id="documentation_Inv3" />
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="Task_SaveEDO" name="Сохраняет в соответствующую&#10;папку ЗПИФа на ЭДО">
+      <bpmn:documentation id="documentation_SaveEDO" />
+    </bpmn:userTask>
+    <bpmn:userTask id="Task_CheckFolder1" name="Бухгалтер 1:&#10;зайти в свои папки&#10;на ЭДО">
+      <bpmn:documentation id="documentation_CF1" />
+    </bpmn:userTask>
+    <bpmn:endEvent id="EndEvent_NoInvoice1" name="Нет счёта&#10;в папке">
+      <bpmn:documentation id="documentation_NoInv1" />
+      <bpmn:incoming>Flow_06o4146</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="EndEvent_NoInvoice3" name="Нет счёта&#10;в папке">
+      <bpmn:documentation id="documentation_NoInv3" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="EndEvent_NoInvoice2" name="Нет счёта&#10;в папке">
+      <bpmn:documentation id="documentation_NoInv2" />
+      <bpmn:incoming>Flow_Invoice2_No</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:exclusiveGateway id="Gateway_InvoiceFoundMerge">
+      <bpmn:documentation id="documentation_ifm" />
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="Task_CheckBalances" name="Проверить остатки на счету, составить список платежей на оплату и составить лист согласования">
+      <bpmn:documentation id="documentation_cb1" />
+    </bpmn:userTask>
+    <bpmn:userTask id="Task_SendApproval" name="Отправить лист согласования по email со всеми необходимыми для проверки документами">
+      <bpmn:documentation id="documentation_sa1" />
+      <bpmn:incoming>Flow_Check_Decide</bpmn:incoming>
+      <bpmn:outgoing>Flow_0dcnud6</bpmn:outgoing>
+      <bpmn:outgoing>Flow_0jjj0jq</bpmn:outgoing>
+      <bpmn:outgoing>Flow_120qsqf</bpmn:outgoing>
+      <bpmn:outgoing>Flow_1h12sj2</bpmn:outgoing>
+      <bpmn:outgoing>Flow_1wb3iar</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="Task_FinDirectorReceive" name="Получить лист&#10;согласования по email">
+      <bpmn:documentation id="documentation_FinR" />
+      <bpmn:incoming>Flow_0jjj0jq</bpmn:incoming>
+    </bpmn:userTask>
+    <bpmn:userTask id="Task_ApproverReceive" name="Получить лист&#10;согласования по email">
+      <bpmn:documentation id="documentation_rDhRQg" />
+      <bpmn:incoming>Flow_120qsqf</bpmn:incoming>
+      <bpmn:outgoing>Flow_173gza1</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="Gateway_GenDirectorApproved" name="Согласовано?">
+      <bpmn:documentation id="documentation_gd_ap" />
+      <bpmn:incoming>Flow_0hcql26</bpmn:incoming>
+      <bpmn:outgoing>Flow_1prskp1</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="Gateway_FinApproved" name="Согласовано?">
+      <bpmn:documentation id="documentation_FinAp" />
+      <bpmn:incoming>Flow_FinReceive_Review</bpmn:incoming>
+      <bpmn:outgoing>Flow_0nipf8x</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="Gateway_Approved" name="Согласовано?">
+      <bpmn:documentation id="documentation_U0ldKA" />
+      <bpmn:incoming>Flow_173gza1</bpmn:incoming>
+      <bpmn:outgoing>Flow_1evhwgl</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="Task_FinDirectorApprove" name="Ответное письмо&#10;с согласованием">
+      <bpmn:documentation id="documentation_FinOk" />
+      <bpmn:outgoing>Flow_0594g7c</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="Gateway_RealEstateElec" name="Счёт за&#10;электричество?">
+      <bpmn:documentation id="documentation_re_e" />
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="Task_ApproverApprove" name="Ответное письмо&#10;с согласованием">
+      <bpmn:documentation id="documentation_A5rKiw" />
+      <bpmn:outgoing>Flow_1h1mjoi</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="Task_RealEstateSendTC" name="Запрос сотрудникам ТЦ&#10;проверить счётчики&#10;электричества">
+      <bpmn:documentation id="documentation_re_tc" />
+      <bpmn:outgoing>Flow_16hr94m</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="Activity_09g4bc2" name="Проверить электричество">
+      <bpmn:incoming>Flow_16hr94m</bpmn:incoming>
+      <bpmn:outgoing>Flow_0838qz5</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="Activity_1ai17lm" name="Ответ с  результатом проверки">
+      <bpmn:incoming>Flow_0838qz5</bpmn:incoming>
+      <bpmn:outgoing>Flow_1qne11v</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="Task_TCReview" name="Проверить документ&#10;со своей стороны">
+      <bpmn:documentation id="documentation_7PZ9jg" />
+      <bpmn:incoming>Flow_1qne11v</bpmn:incoming>
+      <bpmn:outgoing>Flow_14ubf5x</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="Task_CorrectApproval" name="Бухгалтер: скорректировать&#10;лист согласования&#10;и повторить рассылку">
+      <bpmn:documentation id="documentation_7gJoMQ" />
+      <bpmn:incoming>Flow_1hxna39</bpmn:incoming>
+      <bpmn:incoming>Flow_052m2m7</bpmn:incoming>
+      <bpmn:incoming>Flow_15d3cff</bpmn:incoming>
+    </bpmn:userTask>
+    <bpmn:userTask id="Activity_1ud0z9y" name="не согласовано">
+      <bpmn:incoming>Flow_1evhwgl</bpmn:incoming>
+      <bpmn:outgoing>Flow_052m2m7</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="Activity_1b846h7" name="не согласовано">
+      <bpmn:incoming>Flow_0nipf8x</bpmn:incoming>
+      <bpmn:outgoing>Flow_15d3cff</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="Task_RealEstateReceive" name="Получить лист&#10;согласования по email">
+      <bpmn:documentation id="documentation_re_r" />
+      <bpmn:incoming>Flow_1h12sj2</bpmn:incoming>
+    </bpmn:userTask>
+    <bpmn:userTask id="Task_GenDirectorApprove" name="Ответное письмо&#10;с согласованием">
+      <bpmn:documentation id="documentation_gd_ok" />
+      <bpmn:outgoing>Flow_17cu58e</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="Task_WaitResponses" name="Ожидать ответные&#10;письма в почте">
+      <bpmn:documentation id="documentation_uatMKQ" />
+      <bpmn:incoming>Flow_0594g7c</bpmn:incoming>
+      <bpmn:incoming>Flow_1h1mjoi</bpmn:incoming>
+      <bpmn:incoming>Flow_17cu58e</bpmn:incoming>
+      <bpmn:incoming>Flow_055dkew</bpmn:incoming>
+      <bpmn:outgoing>Flow_1rpaxnj</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="Gateway_18l7h42">
+      <bpmn:incoming>Flow_14ubf5x</bpmn:incoming>
+      <bpmn:outgoing>Flow_01bnlkz</bpmn:outgoing>
+      <bpmn:outgoing>Flow_0jeel9d</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="Activity_0aiy2z4" name="не согласовано">
+      <bpmn:incoming>Flow_01bnlkz</bpmn:incoming>
+      <bpmn:outgoing>Flow_1hxna39</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="Activity_1l3yb1x" name="не согласовано">
+      <bpmn:incoming>Flow_1prskp1</bpmn:incoming>
+    </bpmn:userTask>
+    <bpmn:userTask id="Activity_1p8lnsw" name="Подписать счёт&#10;на оплату">
+      <bpmn:incoming>Flow_0u1fopw</bpmn:incoming>
+      <bpmn:outgoing>Flow_0ple2v3</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="Task_ChiefReceive" name="Получить лист&#10;согласования по email">
+      <bpmn:documentation id="documentation_ch_r" />
+      <bpmn:incoming>Flow_1wb3iar</bpmn:incoming>
+      <bpmn:outgoing>Flow_1902e6d</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="Task_GenDirectorReceive" name="Получить лист&#10;согласования по email">
+      <bpmn:documentation id="documentation_gd_r" />
+      <bpmn:incoming>Flow_0dcnud6</bpmn:incoming>
+      <bpmn:outgoing>Flow_0hcql26</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="Task_TCReply" name="Ответное письмо&#10;с согласованием">
+      <bpmn:documentation id="documentation_uJ1YkA" />
+      <bpmn:incoming>Flow_0jeel9d</bpmn:incoming>
+      <bpmn:outgoing>Flow_055dkew</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="Task_CreateAvancor" name="Создать платежи&#10;в Аванкор">
+      <bpmn:documentation id="documentation_av1" />
+      <bpmn:incoming>Flow_1yv3scw</bpmn:incoming>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="Gateway_05z2oio" name="Все согласовали?">
+      <bpmn:incoming>Flow_1rpaxnj</bpmn:incoming>
+      <bpmn:outgoing>Flow_1yv3scw</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="EndEvent_1" name="Платёж оплачен">
+      <bpmn:documentation id="documentation_J651vQ" />
+      <bpmn:incoming>Flow_0ple2v3</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:userTask id="Task_ApproveBank" name="Подписать счёт&#10;на оплату">
+      <bpmn:documentation id="documentation_agsGEA" />
+      <bpmn:outgoing>Flow_0u1fopw</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="Task_UploadBank" name="Загрузить платежи&#10;в банк-клиент">
+      <bpmn:documentation id="documentation_r27Mww" />
+    </bpmn:userTask>
+    <bpmn:userTask id="Task_VerifyOutlook" name="Сверить платежи&#10;с письмами в почте">
+      <bpmn:documentation id="documentation_TvexnQ" />
+      <bpmn:incoming>Flow_1902e6d</bpmn:incoming>
+    </bpmn:userTask>
+    <bpmn:userTask id="Task_ExportAvancor" name="Выгрузить платежи&#10;из Аванкор">
+      <bpmn:documentation id="documentation_av2" />
+    </bpmn:userTask>
+    <bpmn:userTask id="Task_BOReview2" name="Бухгалтер:&#10;заполнение счёта,&#10;условия по договору">
+      <bpmn:documentation id="documentation_Trgbdg" />
+    </bpmn:userTask>
+    <bpmn:userTask id="Task_BOReview1" name="Сотрудник недвижимости:&#10;правомерность платежа,&#10;работы/услуги оказаны">
+      <bpmn:documentation id="documentation_eQTrXg" />
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="Gateway_Invoice1" name="В папке&#10;есть счёт?">
+      <bpmn:documentation id="documentation_Inv1" />
+      <bpmn:outgoing>Flow_06o4146</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_Start_Diadoc" sourceRef="StartEvent_1" targetRef="Task_IncomingDiadoc">
+      <bpmn:documentation id="documentation_J17w9A" />
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Diadoc_Open" sourceRef="Task_IncomingDiadoc" targetRef="Task_OpenDiadoc">
+      <bpmn:documentation id="documentation_VfBuCQ" />
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Open_ZPIF" sourceRef="Task_OpenDiadoc" targetRef="Task_DetermineZPIF">
+      <bpmn:documentation id="documentation_04jCjQ" />
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_ZPIF_SendBOReview" sourceRef="Task_DetermineZPIF" targetRef="Task_SendBOReview">
+      <bpmn:documentation id="documentation_lFvfLw" />
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_SendBO_Split" sourceRef="Task_SendBOReview" targetRef="Gateway_BOReviewSplit">
+      <bpmn:documentation id="documentation_c5oP7g" />
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Split_BOReview1" sourceRef="Gateway_BOReviewSplit" targetRef="Task_BOReview1">
+      <bpmn:documentation id="documentation_ABEC7g" />
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Split_BOReview2" sourceRef="Gateway_BOReviewSplit" targetRef="Task_BOReview2">
+      <bpmn:documentation id="documentation_BnB0Kg" />
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_BOReview1_Join" sourceRef="Task_BOReview1" targetRef="Gateway_BOReviewJoin">
+      <bpmn:documentation id="documentation_0g0Ghw" />
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_BOReview2_Join" sourceRef="Task_BOReview2" targetRef="Gateway_BOReviewJoin">
+      <bpmn:documentation id="documentation_tP8QDg" />
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Join_BOApproved" sourceRef="Gateway_BOReviewJoin" targetRef="Gateway_BOApproved">
+      <bpmn:documentation id="documentation_a6Mmfg" />
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_BOApproved_Yes" name="Да" sourceRef="Gateway_BOApproved" targetRef="Task_SignDiadoc">
+      <bpmn:documentation id="documentation_7mNu4w" />
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_BOApproved_No" name="Нет" sourceRef="Gateway_BOApproved" targetRef="EndEvent_BOReviewFailed">
+      <bpmn:documentation id="documentation_3OSkZQ" />
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Sign_Download" sourceRef="Task_SignDiadoc" targetRef="Task_DownloadSigned">
+      <bpmn:documentation id="documentation_SignDl" />
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Download_Split" sourceRef="Task_DownloadSigned" targetRef="Gateway_PostDownloadSplit">
+      <bpmn:documentation id="documentation_DlSplit" />
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Split_SaveEDO" sourceRef="Gateway_PostDownloadSplit" targetRef="Task_SaveEDO">
+      <bpmn:documentation id="documentation_SplitEDO" />
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Split_SendSpecdep" sourceRef="Gateway_PostDownloadSplit" targetRef="Task_SendSpecdep">
+      <bpmn:documentation id="documentation_SplitSpec" />
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_SendSpecdep_Receive" sourceRef="Task_SendSpecdep" targetRef="Task_SpecdepReceive">
+      <bpmn:documentation id="documentation_SpecFlow" />
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_SaveEDO_AccSplit" sourceRef="Task_SaveEDO" targetRef="Gateway_AccSplit">
+      <bpmn:documentation id="documentation_EDOAcc" />
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_AccSplit_Check1" sourceRef="Gateway_AccSplit" targetRef="Task_CheckFolder1">
+      <bpmn:documentation id="documentation_ASC1" />
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_AccSplit_Check2" sourceRef="Gateway_AccSplit" targetRef="Task_CheckFolder2">
+      <bpmn:documentation id="documentation_ASC2" />
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_AccSplit_Check3" sourceRef="Gateway_AccSplit" targetRef="Task_CheckFolder3">
+      <bpmn:documentation id="documentation_ASC3" />
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Check1_Invoice1" sourceRef="Task_CheckFolder1" targetRef="Gateway_Invoice1">
+      <bpmn:documentation id="documentation_CI1" />
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Invoice1_Yes" name="Да" sourceRef="Gateway_Invoice1" targetRef="Gateway_InvoiceFoundMerge">
+      <bpmn:documentation id="documentation_IY1" />
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_06o4146" sourceRef="Gateway_Invoice1" targetRef="EndEvent_NoInvoice1" />
+    <bpmn:sequenceFlow id="Flow_Check2_Invoice2" sourceRef="Task_CheckFolder2" targetRef="Gateway_Invoice2">
+      <bpmn:documentation id="documentation_CI2" />
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Invoice2_Yes" name="Да" sourceRef="Gateway_Invoice2" targetRef="Gateway_InvoiceFoundMerge">
+      <bpmn:documentation id="documentation_IY2" />
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Invoice2_No" name="Нет" sourceRef="Gateway_Invoice2" targetRef="EndEvent_NoInvoice2">
+      <bpmn:documentation id="documentation_IN2" />
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Check3_Invoice3" sourceRef="Task_CheckFolder3" targetRef="Gateway_Invoice3">
+      <bpmn:documentation id="documentation_CI3" />
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Invoice3_Yes" name="Да" sourceRef="Gateway_Invoice3" targetRef="Gateway_InvoiceFoundMerge">
+      <bpmn:documentation id="documentation_IY3" />
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Invoice3_No" name="Нет" sourceRef="Gateway_Invoice3" targetRef="EndEvent_NoInvoice3">
+      <bpmn:documentation id="documentation_IN3" />
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_InvoiceFound_Check" sourceRef="Gateway_InvoiceFoundMerge" targetRef="Task_CheckBalances">
+      <bpmn:documentation id="documentation_ifc" />
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Check_Decide" sourceRef="Task_CheckBalances" targetRef="Task_SendApproval">
+      <bpmn:documentation id="documentation_fcd" />
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_0dcnud6" sourceRef="Task_SendApproval" targetRef="Task_GenDirectorReceive" />
+    <bpmn:sequenceFlow id="Flow_0jjj0jq" sourceRef="Task_SendApproval" targetRef="Task_FinDirectorReceive" />
+    <bpmn:sequenceFlow id="Flow_120qsqf" sourceRef="Task_SendApproval" targetRef="Task_ApproverReceive" />
+    <bpmn:sequenceFlow id="Flow_1h12sj2" sourceRef="Task_SendApproval" targetRef="Task_RealEstateReceive" />
+    <bpmn:sequenceFlow id="Flow_1wb3iar" sourceRef="Task_SendApproval" targetRef="Task_ChiefReceive" />
+    <bpmn:sequenceFlow id="Flow_FinReceive_Review" sourceRef="Task_FinDirectorReceive" targetRef="Gateway_FinApproved">
+      <bpmn:documentation id="documentation_FRR" />
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_173gza1" sourceRef="Task_ApproverReceive" targetRef="Gateway_Approved" />
+    <bpmn:sequenceFlow id="Flow_0hcql26" sourceRef="Task_GenDirectorReceive" targetRef="Gateway_GenDirectorApproved" />
+    <bpmn:sequenceFlow id="Flow_GenDirectorApproved_Yes" name="Да" sourceRef="Gateway_GenDirectorApproved" targetRef="Task_GenDirectorApprove">
+      <bpmn:documentation id="documentation_gcy" />
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_1prskp1" sourceRef="Gateway_GenDirectorApproved" targetRef="Activity_1l3yb1x" />
+    <bpmn:sequenceFlow id="Flow_FinApproved_Yes" name="Да" sourceRef="Gateway_FinApproved" targetRef="Task_FinDirectorApprove">
+      <bpmn:documentation id="documentation_FAY" />
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_0nipf8x" sourceRef="Gateway_FinApproved" targetRef="Activity_1b846h7" />
+    <bpmn:sequenceFlow id="Flow_Approved_Yes" name="Да" sourceRef="Gateway_Approved" targetRef="Task_ApproverApprove">
+      <bpmn:documentation id="documentation_IWjHsQ" />
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_1evhwgl" sourceRef="Gateway_Approved" targetRef="Activity_1ud0z9y" />
+    <bpmn:sequenceFlow id="Flow_0594g7c" sourceRef="Task_FinDirectorApprove" targetRef="Task_WaitResponses" />
+    <bpmn:sequenceFlow id="Flow_RE_Receive_Elec" sourceRef="Task_RealEstateReceive" targetRef="Gateway_RealEstateElec">
+      <bpmn:documentation id="documentation_fre1" />
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_RE_Elec_Yes" name="Да" sourceRef="Gateway_RealEstateElec" targetRef="Task_RealEstateSendTC">
+      <bpmn:documentation id="documentation_frey" />
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_1h1mjoi" sourceRef="Task_ApproverApprove" targetRef="Task_WaitResponses" />
+    <bpmn:sequenceFlow id="Flow_16hr94m" sourceRef="Task_RealEstateSendTC" targetRef="Activity_09g4bc2" />
+    <bpmn:sequenceFlow id="Flow_0838qz5" sourceRef="Activity_09g4bc2" targetRef="Activity_1ai17lm" />
+    <bpmn:sequenceFlow id="Flow_1qne11v" sourceRef="Activity_1ai17lm" targetRef="Task_TCReview" />
+    <bpmn:sequenceFlow id="Flow_14ubf5x" sourceRef="Task_TCReview" targetRef="Gateway_18l7h42" />
+    <bpmn:sequenceFlow id="Flow_1hxna39" sourceRef="Activity_0aiy2z4" targetRef="Task_CorrectApproval" />
+    <bpmn:sequenceFlow id="Flow_052m2m7" sourceRef="Activity_1ud0z9y" targetRef="Task_CorrectApproval" />
+    <bpmn:sequenceFlow id="Flow_15d3cff" sourceRef="Activity_1b846h7" targetRef="Task_CorrectApproval" />
+    <bpmn:sequenceFlow id="Flow_17cu58e" sourceRef="Task_GenDirectorApprove" targetRef="Task_WaitResponses" />
+    <bpmn:sequenceFlow id="Flow_055dkew" sourceRef="Task_TCReply" targetRef="Task_WaitResponses" />
+    <bpmn:sequenceFlow id="Flow_1rpaxnj" sourceRef="Task_WaitResponses" targetRef="Gateway_05z2oio" />
+    <bpmn:sequenceFlow id="Flow_01bnlkz" sourceRef="Gateway_18l7h42" targetRef="Activity_0aiy2z4" />
+    <bpmn:sequenceFlow id="Flow_0jeel9d" sourceRef="Gateway_18l7h42" targetRef="Task_TCReply" />
+    <bpmn:sequenceFlow id="Flow_0u1fopw" sourceRef="Task_ApproveBank" targetRef="Activity_1p8lnsw" />
+    <bpmn:sequenceFlow id="Flow_0ple2v3" sourceRef="Activity_1p8lnsw" targetRef="EndEvent_1" />
+    <bpmn:sequenceFlow id="Flow_1902e6d" sourceRef="Task_ChiefReceive" targetRef="Task_VerifyOutlook" />
+    <bpmn:sequenceFlow id="Flow_1yv3scw" name="да" sourceRef="Gateway_05z2oio" targetRef="Task_CreateAvancor" />
+    <bpmn:sequenceFlow id="Flow_Avancor_Export" sourceRef="Task_CreateAvancor" targetRef="Task_ExportAvancor">
+      <bpmn:documentation id="documentation_fae" />
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Verify_Approve" sourceRef="Task_VerifyOutlook" targetRef="Task_ApproveBank">
+      <bpmn:documentation id="documentation_4ZrU5Q" />
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Export_Upload" sourceRef="Task_ExportAvancor" targetRef="Task_UploadBank">
+      <bpmn:documentation id="documentation_feu" />
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Upload_Verify" sourceRef="Task_UploadBank" targetRef="Task_VerifyOutlook">
+      <bpmn:documentation id="documentation_P11srQ" />
+    </bpmn:sequenceFlow>
+  </bpmn:process>
   <bpmndi:BPMNDiagram id="BPMNDiagram_2_1">
-    <bpmndi:BPMNPlane bpmnElement="Collaboration_2_1" id="BPMNPlane_2_1">
-      <bpmndi:BPMNShape bpmnElement="Participant_Pool" id="Participant_Pool_di" isHorizontal="true">
-        <dc:Bounds height="960" width="3950" x="120" y="60"/>
+    <bpmndi:BPMNPlane id="BPMNPlane_2_1" bpmnElement="Collaboration_2_1">
+      <bpmndi:BPMNShape id="Participant_Pool_di" bpmnElement="Participant_Pool" isHorizontal="true">
+        <dc:Bounds x="170" y="115" width="4470" height="1460" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Lane_Diadoc" id="Lane_Diadoc_di" isHorizontal="true">
-        <dc:Bounds height="100" width="3920" x="150" y="60"/>
+      <bpmndi:BPMNShape id="Lane_FinDirector_di" bpmnElement="Lane_FinDirector" isHorizontal="true">
+        <dc:Bounds x="200" y="910" width="4440" height="105" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Lane_BackOffice" id="Lane_BackOffice_di" isHorizontal="true">
-        <dc:Bounds height="110" width="3920" x="150" y="160"/>
+      <bpmndi:BPMNShape id="Lane_GenDirector_di" bpmnElement="Lane_GenDirector" isHorizontal="true">
+        <dc:Bounds x="200" y="1015" width="4440" height="130" />
+        <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Lane_Accountants" id="Lane_Accountants_di" isHorizontal="true">
-        <dc:Bounds height="180" width="3920" x="150" y="270"/>
+      <bpmndi:BPMNShape id="Lane_SpecDep_di" bpmnElement="Lane_SpecDep" isHorizontal="true">
+        <dc:Bounds x="200" y="1405" width="4440" height="170" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Lane_TC" id="Lane_TC_di" isHorizontal="true">
-        <dc:Bounds height="110" width="3920" x="150" y="450"/>
+      <bpmndi:BPMNShape id="Lane_Chief_di" bpmnElement="Lane_Chief" isHorizontal="true">
+        <dc:Bounds x="200" y="1280" width="4440" height="125" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Lane_Approvers" id="Lane_Approvers_di" isHorizontal="true">
-        <dc:Bounds height="130" width="3920" x="150" y="560"/>
+      <bpmndi:BPMNShape id="Lane_Assistant_di" bpmnElement="Lane_Assistant" isHorizontal="true">
+        <dc:Bounds x="200" y="1145" width="4440" height="135" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Lane_Assistant" id="Lane_Assistant_di" isHorizontal="true">
-        <dc:Bounds height="100" width="3920" x="150" y="690"/>
+      <bpmndi:BPMNShape id="Lane_Approvers_di" bpmnElement="Lane_Approvers" isHorizontal="true">
+        <dc:Bounds x="200" y="745" width="4440" height="165" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Lane_Chief" id="Lane_Chief_di" isHorizontal="true">
-        <dc:Bounds height="130" width="3920" x="150" y="790"/>
+      <bpmndi:BPMNShape id="Lane_TC_di" bpmnElement="Lane_TC" isHorizontal="true">
+        <dc:Bounds x="200" y="615" width="4440" height="130" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Lane_SpecDep" id="Lane_SpecDep_di" isHorizontal="true">
-        <dc:Bounds height="100" width="3920" x="150" y="920"/>
+      <bpmndi:BPMNShape id="Lane_Accountants_di" bpmnElement="Lane_Accountants" isHorizontal="true">
+        <dc:Bounds x="200" y="385" width="4440" height="230" />
+        <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="StartEvent_1" id="StartEvent_1_di">
-        <dc:Bounds height="36" width="36" x="192" y="92"/>
+      <bpmndi:BPMNShape id="Lane_BackOffice_di" bpmnElement="Lane_BackOffice" isHorizontal="true">
+        <dc:Bounds x="200" y="285" width="4440" height="100" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Diadoc_di" bpmnElement="Lane_Diadoc" isHorizontal="true">
+        <dc:Bounds x="200" y="115" width="4440" height="170" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="242" y="207" width="36" height="36" />
         <bpmndi:BPMNLabel id="BPMNLabel_SlzYeA">
-          <dc:Bounds height="20.0" width="100.0" x="160.0" y="131.0"/>
+          <dc:Bounds x="223" y="246" width="74" height="40" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Task_IncomingDiadoc" id="Task_IncomingDiadoc_di">
-        <dc:Bounds height="80" width="120" x="280" y="70"/>
+      <bpmndi:BPMNShape id="Task_IncomingDiadoc_di" bpmnElement="Task_IncomingDiadoc">
+        <dc:Bounds x="330" y="185" width="120" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Task_OpenDiadoc" id="Task_OpenDiadoc_di">
-        <dc:Bounds height="80" width="120" x="450" y="175"/>
+      <bpmndi:BPMNShape id="Task_OpenDiadoc_di" bpmnElement="Task_OpenDiadoc">
+        <dc:Bounds x="500" y="290" width="120" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Task_DetermineZPIF" id="Task_DetermineZPIF_di">
-        <dc:Bounds height="80" width="120" x="620" y="175"/>
+      <bpmndi:BPMNShape id="Task_DetermineZPIF_di" bpmnElement="Task_DetermineZPIF">
+        <dc:Bounds x="670" y="290" width="120" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Task_SendBOReview" id="Task_SendBOReview_di">
-        <dc:Bounds height="90" width="130" x="780" y="168"/>
+      <bpmndi:BPMNShape id="Task_SendBOReview_di" bpmnElement="Task_SendBOReview">
+        <dc:Bounds x="830" y="283" width="130" height="90" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Gateway_BOReviewSplit" id="Gateway_BOReviewSplit_di" isHorizontal="true">
-        <dc:Bounds height="50" width="50" x="950" y="190"/>
+      <bpmndi:BPMNShape id="Gateway_BOReviewSplit_di" bpmnElement="Gateway_BOReviewSplit" isHorizontal="true">
+        <dc:Bounds x="1000" y="305" width="50" height="50" />
         <bpmndi:BPMNLabel id="BPMNLabel_c95fpg">
-          <dc:Bounds height="20.0" width="100.0" x="925.0" y="243.0"/>
+          <dc:Bounds x="925" y="243" width="100" height="20" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Task_BOReview1" id="Task_BOReview1_di">
-        <dc:Bounds height="70" width="130" x="1030" y="165"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Task_BOReview2" id="Task_BOReview2_di">
-        <dc:Bounds height="70" width="130" x="1030" y="235"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Gateway_BOReviewJoin" id="Gateway_BOReviewJoin_di" isHorizontal="true">
-        <dc:Bounds height="50" width="50" x="1200" y="190"/>
+      <bpmndi:BPMNShape id="Gateway_BOReviewJoin_di" bpmnElement="Gateway_BOReviewJoin" isHorizontal="true">
+        <dc:Bounds x="1250" y="305" width="50" height="50" />
         <bpmndi:BPMNLabel id="BPMNLabel_IoOgfA">
-          <dc:Bounds height="20.0" width="100.0" x="1175.0" y="243.0"/>
+          <dc:Bounds x="1175" y="243" width="100" height="20" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Gateway_BOApproved" id="Gateway_BOApproved_di" isHorizontal="true">
-        <dc:Bounds height="50" width="50" x="1290" y="190"/>
+      <bpmndi:BPMNShape id="Gateway_BOApproved_di" bpmnElement="Gateway_BOApproved" isHorizontal="true" isMarkerVisible="true">
+        <dc:Bounds x="1340" y="305" width="50" height="50" />
         <bpmndi:BPMNLabel id="BPMNLabel_8nQowg">
-          <dc:Bounds height="20.0" width="100.0" x="1265.0" y="243.0"/>
+          <dc:Bounds x="1337" y="358" width="56" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Task_SaveFolder" id="Task_SaveFolder_di">
-        <dc:Bounds height="80" width="130" x="1380" y="175"/>
+      <bpmndi:BPMNShape id="Task_SignDiadoc_di" bpmnElement="Task_SignDiadoc">
+        <dc:Bounds x="1430" y="290" width="120" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Gateway_ChooseAccountant" id="Gateway_ChooseAccountant_di" isHorizontal="true">
-        <dc:Bounds height="50" width="50" x="1565" y="190"/>
-        <bpmndi:BPMNLabel id="BPMNLabel_k4LJ2w">
-          <dc:Bounds height="20.0" width="100.0" x="1540.0" y="243.0"/>
+      <bpmndi:BPMNShape id="Task_DownloadSigned_di" bpmnElement="Task_DownloadSigned">
+        <dc:Bounds x="1565" y="290" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_PostDownloadSplit_di" bpmnElement="Gateway_PostDownloadSplit" isHorizontal="true" isMarkerVisible="true">
+        <dc:Bounds x="1700" y="305" width="50" height="50" />
+        <bpmndi:BPMNLabel id="BPMNLabel_am0VCg">
+          <dc:Bounds x="1625" y="243" width="100" height="20" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Task_SendEmail1" id="Task_SendEmail1_di">
-        <dc:Bounds height="70" width="130" x="1659" y="111"/>
+      <bpmndi:BPMNShape id="Task_SendSpecdep_di" bpmnElement="Task_SendSpecdep">
+        <dc:Bounds x="1775" y="345" width="130" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Task_SendEmail2" id="Task_SendEmail2_di">
-        <dc:Bounds height="70" width="130" x="1670" y="195"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Task_SendEmail3" id="Task_SendEmail3_di">
-        <dc:Bounds height="70" width="130" x="1670" y="274"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Task_Receive1" id="Task_Receive1_di">
-        <dc:Bounds height="70" width="130" x="1850" y="285"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Task_Receive2" id="Task_Receive2_di">
-        <dc:Bounds height="70" width="130" x="1850" y="355"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Task_Receive3" id="Task_Receive3_di">
-        <dc:Bounds height="70" width="130" x="1850" y="425"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Task_Prepare1" id="Task_Prepare1_di">
-        <dc:Bounds height="80" width="130" x="2020" y="285"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Task_Prepare2" id="Task_Prepare2_di">
-        <dc:Bounds height="80" width="130" x="2020" y="355"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Task_Prepare3" id="Task_Prepare3_di">
-        <dc:Bounds height="80" width="130" x="2020" y="425"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Gateway_AccMerge" id="Gateway_AccMerge_di" isHorizontal="true">
-        <dc:Bounds height="50" width="50" x="2200" y="315"/>
-        <bpmndi:BPMNLabel id="BPMNLabel_jbTTJQ">
-          <dc:Bounds height="20.0" width="100.0" x="2175.0" y="368.0"/>
+      <bpmndi:BPMNShape id="EndEvent_BOReviewFailed_di" bpmnElement="EndEvent_BOReviewFailed" bioc:stroke="#831311" bioc:fill="#ffcdd2" color:background-color="#ffcdd2" color:border-color="#831311">
+        <dc:Bounds x="1312" y="207" width="36" height="36" />
+        <bpmndi:BPMNLabel id="BPMNLabel_Szk0WQ">
+          <dc:Bounds x="1284" y="246" width="92" height="66" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Task_CorrectApproval" id="Task_CorrectApproval_di">
-        <dc:Bounds height="80.0" width="140.0" x="2203.0" y="409.0"/>
+      <bpmndi:BPMNShape id="Task_SpecdepReceive_di" bpmnElement="Task_SpecdepReceive">
+        <dc:Bounds x="1775" y="1475" width="130" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Gateway_Electricity" id="Gateway_Electricity_di" isHorizontal="true">
-        <dc:Bounds height="50" width="50" x="2310" y="315"/>
-        <bpmndi:BPMNLabel id="BPMNLabel_GoG7Kg">
-          <dc:Bounds height="20.0" width="100.0" x="2285.0" y="368.0"/>
+      <bpmndi:BPMNShape id="Gateway_AccSplit_di" bpmnElement="Gateway_AccSplit" isMarkerVisible="true">
+        <dc:Bounds x="1895" y="1128" width="50" height="50" />
+        <bpmndi:BPMNLabel id="BPMNLabel_xg2DUQ">
+          <dc:Bounds x="1935" y="368" width="100" height="20" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Task_SendToTC" id="Task_SendToTC_di">
-        <dc:Bounds height="80" width="130" x="2415" y="285"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Task_SendToApprovers" id="Task_SendToApprovers_di">
-        <dc:Bounds height="80" width="130" x="2595" y="355"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Task_WaitResponses" id="Task_WaitResponses_di">
-        <dc:Bounds height="80" width="130" x="2995" y="300"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Gateway_AllSix" id="Gateway_AllSix_di" isHorizontal="true">
-        <dc:Bounds height="50" width="50" x="3175" y="315"/>
-        <bpmndi:BPMNLabel id="BPMNLabel_RvIx9A">
-          <dc:Bounds height="20.0" width="100.0" x="3150.0" y="368.0"/>
+      <bpmndi:BPMNShape id="Gateway_Invoice1_di" bpmnElement="Gateway_Invoice1" isHorizontal="true" isMarkerVisible="true">
+        <dc:Bounds x="2155" y="1113" width="50" height="50" />
+        <bpmndi:BPMNLabel id="BPMNLabel_qzO0jg">
+          <dc:Bounds x="2153" y="1166" width="54" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Task_TCReceive" id="Task_TCReceive_di">
-        <dc:Bounds height="80" width="120" x="2375" y="465"/>
+      <bpmndi:BPMNShape id="Task_CheckFolder2_di" bpmnElement="Task_CheckFolder2">
+        <dc:Bounds x="1985" y="1168" width="130" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Task_TCReview" id="Task_TCReview_di">
-        <dc:Bounds height="80" width="120" x="2545" y="465"/>
+      <bpmndi:BPMNShape id="Gateway_Invoice2_di" bpmnElement="Gateway_Invoice2" isHorizontal="true" isMarkerVisible="true">
+        <dc:Bounds x="2155" y="1183" width="50" height="50" />
+        <bpmndi:BPMNLabel id="BPMNLabel_KOrzMg">
+          <dc:Bounds x="2153" y="1145.5" width="54" height="27" />
+        </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Task_TCReply" id="Task_TCReply_di">
-        <dc:Bounds height="80" width="120" x="2715" y="465"/>
+      <bpmndi:BPMNShape id="Task_CheckFolder3_di" bpmnElement="Task_CheckFolder3">
+        <dc:Bounds x="1985" y="1238" width="130" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Task_ApproverReceive" id="Task_ApproverReceive_di">
-        <dc:Bounds height="80" width="120" x="2545" y="585"/>
+      <bpmndi:BPMNShape id="Gateway_Invoice3_di" bpmnElement="Gateway_Invoice3" isHorizontal="true" isMarkerVisible="true">
+        <dc:Bounds x="2145" y="1253" width="50" height="50" />
+        <bpmndi:BPMNLabel id="BPMNLabel_6YkFXg">
+          <dc:Bounds x="2143" y="1215.5" width="54" height="27" />
+        </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Task_ApproverReview" id="Task_ApproverReview_di">
-        <dc:Bounds height="80" width="120" x="2715" y="585"/>
+      <bpmndi:BPMNShape id="Task_SaveEDO_di" bpmnElement="Task_SaveEDO">
+        <dc:Bounds x="1790" y="240" width="130" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Gateway_Approved" id="Gateway_Approved_di" isHorizontal="true">
-        <dc:Bounds height="50" width="50" x="2885" y="600"/>
+      <bpmndi:BPMNShape id="Task_CheckFolder1_di" bpmnElement="Task_CheckFolder1">
+        <dc:Bounds x="1984" y="1099" width="130" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_NoInvoice1_di" bpmnElement="EndEvent_NoInvoice1">
+        <dc:Bounds x="2212" y="1052" width="36" height="36" />
+        <bpmndi:BPMNLabel id="BPMNLabel_uinY0A">
+          <dc:Bounds x="2205" y="1091" width="51" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_NoInvoice3_di" bpmnElement="EndEvent_NoInvoice3">
+        <dc:Bounds x="2212" y="1327" width="36" height="36" />
+        <bpmndi:BPMNLabel id="BPMNLabel_YcMdCQ">
+          <dc:Bounds x="2205" y="1366" width="51" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_NoInvoice2_di" bpmnElement="EndEvent_NoInvoice2">
+        <dc:Bounds x="2252" y="1222" width="36" height="36" />
+        <bpmndi:BPMNLabel id="BPMNLabel_DUBwJQ">
+          <dc:Bounds x="2244" y="1255.5" width="51" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_InvoiceFoundMerge_di" bpmnElement="Gateway_InvoiceFoundMerge" isHorizontal="true" isMarkerVisible="true">
+        <dc:Bounds x="2335" y="1175" width="50" height="50" />
+        <bpmndi:BPMNLabel id="BPMNLabel_sDuAJg">
+          <dc:Bounds x="2320" y="353" width="100" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CheckBalances_di" bpmnElement="Task_CheckBalances">
+        <dc:Bounds x="2405" y="1160" width="130" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_SendApproval_di" bpmnElement="Task_SendApproval">
+        <dc:Bounds x="2565" y="1155" width="130" height="90" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_FinDirectorReceive_di" bpmnElement="Task_FinDirectorReceive">
+        <dc:Bounds x="2695" y="930" width="130" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ApproverReceive_di" bpmnElement="Task_ApproverReceive">
+        <dc:Bounds x="2700" y="800" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_GenDirectorApproved_di" bpmnElement="Gateway_GenDirectorApproved" isHorizontal="true" isMarkerVisible="true">
+        <dc:Bounds x="2868" y="1060" width="50" height="50" />
+        <bpmndi:BPMNLabel id="BPMNLabel_Ac39Ag">
+          <dc:Bounds x="2856" y="1036" width="73" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_FinApproved_di" bpmnElement="Gateway_FinApproved" isHorizontal="true" isMarkerVisible="true">
+        <dc:Bounds x="2885" y="945" width="50" height="50" />
+        <bpmndi:BPMNLabel id="BPMNLabel_R8dvWg">
+          <dc:Bounds x="2873" y="921" width="73" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Approved_di" bpmnElement="Gateway_Approved" isHorizontal="true" isMarkerVisible="true">
+        <dc:Bounds x="2905" y="805" width="50" height="50" />
         <bpmndi:BPMNLabel id="BPMNLabel_IFbOrw">
-          <dc:Bounds height="20.0" width="100.0" x="2860.0" y="653.0"/>
+          <dc:Bounds x="2885" y="864" width="73" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Task_ApproverApprove" id="Task_ApproverApprove_di">
-        <dc:Bounds height="70" width="120" x="2985" y="560"/>
+      <bpmndi:BPMNShape id="Task_FinDirectorApprove_di" bpmnElement="Task_FinDirectorApprove">
+        <dc:Bounds x="3165" y="920" width="130" height="70" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Task_ApproverReject" id="Task_ApproverReject_di">
-        <dc:Bounds height="70" width="120" x="2985" y="640"/>
+      <bpmndi:BPMNShape id="Gateway_RealEstateElec_di" bpmnElement="Gateway_RealEstateElec" isHorizontal="true" isMarkerVisible="true">
+        <dc:Bounds x="2865" y="515" width="50" height="50" />
+        <bpmndi:BPMNLabel id="BPMNLabel_f9mFcA">
+          <dc:Bounds x="2925" y="526" width="81" height="27" />
+        </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Task_UploadBank" id="Task_UploadBank_di">
-        <dc:Bounds height="80" width="140" x="3075" y="700"/>
+      <bpmndi:BPMNShape id="Task_ApproverApprove_di" bpmnElement="Task_ApproverApprove">
+        <dc:Bounds x="3170" y="775" width="120" height="70" />
+        <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Task_VerifyOutlook" id="Task_VerifyOutlook_di">
-        <dc:Bounds height="80" width="140" x="3275" y="815"/>
+      <bpmndi:BPMNShape id="Task_RealEstateSendTC_di" bpmnElement="Task_RealEstateSendTC">
+        <dc:Bounds x="3015" y="435" width="130" height="90" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Task_ApproveBank" id="Task_ApproveBank_di">
-        <dc:Bounds height="80" width="140" x="3475" y="815"/>
+      <bpmndi:BPMNShape id="Activity_09g4bc2_di" bpmnElement="Activity_09g4bc2">
+        <dc:Bounds x="3030" y="630" width="100" height="80" />
+        <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="Task_SignSpecDep" id="Task_SignSpecDep_di">
-        <dc:Bounds height="80" width="150" x="3675" y="935"/>
+      <bpmndi:BPMNShape id="Activity_1ai17lm_di" bpmnElement="Activity_1ai17lm">
+        <dc:Bounds x="3200" y="460" width="100" height="80" />
+        <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bioc:fill="#c8e6c9" bioc:stroke="#205022" bpmnElement="EndEvent_1" color:background-color="#c8e6c9" color:border-color="#205022" id="EndEvent_1_di">
-        <dc:Bounds height="36" width="36" x="3885" y="957"/>
+      <bpmndi:BPMNShape id="Task_TCReview_di" bpmnElement="Task_TCReview">
+        <dc:Bounds x="3320" y="460" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CorrectApproval_di" bpmnElement="Task_CorrectApproval" bioc:stroke="#831311" bioc:fill="#ffcdd2" color:background-color="#ffcdd2" color:border-color="#831311">
+        <dc:Bounds x="4310" y="1160" width="140" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1ud0z9y_di" bpmnElement="Activity_1ud0z9y">
+        <dc:Bounds x="4140" y="780" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1b846h7_di" bpmnElement="Activity_1b846h7">
+        <dc:Bounds x="4150" y="915" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_RealEstateReceive_di" bpmnElement="Task_RealEstateReceive">
+        <dc:Bounds x="2700" y="500" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_GenDirectorApprove_di" bpmnElement="Task_GenDirectorApprove">
+        <dc:Bounds x="3150" y="1065" width="120" height="70" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_WaitResponses_di" bpmnElement="Task_WaitResponses">
+        <dc:Bounds x="3395" y="1180" width="130" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_19lmcq9_di" bpmnElement="Gateway_18l7h42" isMarkerVisible="true">
+        <dc:Bounds x="3465" y="445" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0aiy2z4_di" bpmnElement="Activity_0aiy2z4">
+        <dc:Bounds x="4150" y="420" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1l3yb1x_di" bpmnElement="Activity_1l3yb1x">
+        <dc:Bounds x="4160" y="1030" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1p8lnsw_di" bpmnElement="Activity_1p8lnsw">
+        <dc:Bounds x="4380" y="1430" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ChiefReceive_di" bpmnElement="Task_ChiefReceive">
+        <dc:Bounds x="2720" y="1300" width="120" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_GenDirectorReceive_di" bpmnElement="Task_GenDirectorReceive">
+        <dc:Bounds x="2690" y="1030" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_TCReply_di" bpmnElement="Task_TCReply">
+        <dc:Bounds x="3540" y="520" width="120" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CreateAvancor_di" bpmnElement="Task_CreateAvancor">
+        <dc:Bounds x="3705" y="1180" width="130" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_05z2oio_di" bpmnElement="Gateway_05z2oio" isMarkerVisible="true">
+        <dc:Bounds x="3575" y="1195" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="3565" y="1252" width="71" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_1_di" bpmnElement="EndEvent_1" bioc:stroke="#205022" bioc:fill="#c8e6c9" color:background-color="#c8e6c9" color:border-color="#205022">
+        <dc:Bounds x="4542" y="1452" width="36" height="36" />
         <bpmndi:BPMNLabel id="BPMNLabel_EndPaid">
-          <dc:Bounds height="20.0" width="100.0" x="3853.0" y="996.0"/>
+          <dc:Bounds x="4517" y="1488" width="85" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNEdge bpmnElement="Flow_Start_Diadoc" id="Flow_Start_Diadoc_di">
-        <di:waypoint x="228.0" y="110.0"/>
-        <di:waypoint x="280.0" y="110.0"/>
+      <bpmndi:BPMNShape id="Task_ApproveBank_di" bpmnElement="Task_ApproveBank">
+        <dc:Bounds x="4380" y="1305" width="140" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_UploadBank_di" bpmnElement="Task_UploadBank">
+        <dc:Bounds x="4090" y="1190" width="140" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_VerifyOutlook_di" bpmnElement="Task_VerifyOutlook">
+        <dc:Bounds x="4100" y="1305" width="140" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ExportAvancor_di" bpmnElement="Task_ExportAvancor">
+        <dc:Bounds x="3895" y="1180" width="130" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_BOReview2_di" bpmnElement="Task_BOReview2">
+        <dc:Bounds x="1055" y="1165" width="130" height="70" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_BOReview1_di" bpmnElement="Task_BOReview1">
+        <dc:Bounds x="1065" y="475" width="130" height="70" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_Start_Diadoc_di" bpmnElement="Flow_Start_Diadoc">
+        <di:waypoint x="278" y="225" />
+        <di:waypoint x="330" y="225" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_Diadoc_Open" id="Flow_Diadoc_Open_di">
-        <di:waypoint x="400.0" y="110.0"/>
-        <di:waypoint x="425.0" y="110.0"/>
-        <di:waypoint x="425.0" y="215.0"/>
-        <di:waypoint x="450.0" y="215.0"/>
+      <bpmndi:BPMNEdge id="Flow_Diadoc_Open_di" bpmnElement="Flow_Diadoc_Open">
+        <di:waypoint x="450" y="225" />
+        <di:waypoint x="475" y="225" />
+        <di:waypoint x="475" y="330" />
+        <di:waypoint x="500" y="330" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_Open_ZPIF" id="Flow_Open_ZPIF_di">
-        <di:waypoint x="570.0" y="215.0"/>
-        <di:waypoint x="620.0" y="215.0"/>
+      <bpmndi:BPMNEdge id="Flow_Open_ZPIF_di" bpmnElement="Flow_Open_ZPIF">
+        <di:waypoint x="620" y="330" />
+        <di:waypoint x="670" y="330" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_ZPIF_SendBOReview" id="Flow_ZPIF_SendBOReview_di">
-        <di:waypoint x="740.0" y="215.0"/>
-        <di:waypoint x="760.0" y="215.0"/>
-        <di:waypoint x="760.0" y="213.0"/>
-        <di:waypoint x="780.0" y="213.0"/>
+      <bpmndi:BPMNEdge id="Flow_ZPIF_SendBOReview_di" bpmnElement="Flow_ZPIF_SendBOReview">
+        <di:waypoint x="790" y="330" />
+        <di:waypoint x="810" y="330" />
+        <di:waypoint x="810" y="328" />
+        <di:waypoint x="830" y="328" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_SendBO_Split" id="Flow_SendBO_Split_di">
-        <di:waypoint x="910.0" y="213.0"/>
-        <di:waypoint x="930.0" y="213.0"/>
-        <di:waypoint x="930.0" y="215.0"/>
-        <di:waypoint x="950.0" y="215.0"/>
+      <bpmndi:BPMNEdge id="Flow_SendBO_Split_di" bpmnElement="Flow_SendBO_Split">
+        <di:waypoint x="960" y="328" />
+        <di:waypoint x="980" y="328" />
+        <di:waypoint x="980" y="330" />
+        <di:waypoint x="1000" y="330" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_Split_BOReview1" id="Flow_Split_BOReview1_di">
-        <di:waypoint x="975.0" y="190.0"/>
-        <di:waypoint x="1005.0" y="190.0"/>
-        <di:waypoint x="1005.0" y="200.0"/>
-        <di:waypoint x="1030.0" y="200.0"/>
+      <bpmndi:BPMNEdge id="Flow_Split_BOReview1_di" bpmnElement="Flow_Split_BOReview1">
+        <di:waypoint x="1025" y="355" />
+        <di:waypoint x="1025" y="510" />
+        <di:waypoint x="1065" y="510" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_Split_BOReview2" id="Flow_Split_BOReview2_di">
-        <di:waypoint x="975.0" y="240.0"/>
-        <di:waypoint x="1005.0" y="240.0"/>
-        <di:waypoint x="1005.0" y="270.0"/>
-        <di:waypoint x="1030.0" y="270.0"/>
+      <bpmndi:BPMNEdge id="Flow_Split_BOReview2_di" bpmnElement="Flow_Split_BOReview2">
+        <di:waypoint x="1025" y="355" />
+        <di:waypoint x="1025" y="1200" />
+        <di:waypoint x="1055" y="1200" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_BOReview1_Join" id="Flow_BOReview1_Join_di">
-        <di:waypoint x="1160.0" y="200.0"/>
-        <di:waypoint x="1180.0" y="200.0"/>
-        <di:waypoint x="1180.0" y="215.0"/>
-        <di:waypoint x="1200.0" y="215.0"/>
+      <bpmndi:BPMNEdge id="Flow_BOReview1_Join_di" bpmnElement="Flow_BOReview1_Join">
+        <di:waypoint x="1195" y="510" />
+        <di:waypoint x="1230" y="510" />
+        <di:waypoint x="1230" y="330" />
+        <di:waypoint x="1250" y="330" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_BOReview2_Join" id="Flow_BOReview2_Join_di">
-        <di:waypoint x="1160.0" y="270.0"/>
-        <di:waypoint x="1180.0" y="270.0"/>
-        <di:waypoint x="1180.0" y="215.0"/>
-        <di:waypoint x="1200.0" y="215.0"/>
+      <bpmndi:BPMNEdge id="Flow_BOReview2_Join_di" bpmnElement="Flow_BOReview2_Join">
+        <di:waypoint x="1185" y="1200" />
+        <di:waypoint x="1230" y="1200" />
+        <di:waypoint x="1230" y="330" />
+        <di:waypoint x="1250" y="330" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_Join_BOApproved" id="Flow_Join_BOApproved_di">
-        <di:waypoint x="1250.0" y="215.0"/>
-        <di:waypoint x="1290.0" y="215.0"/>
+      <bpmndi:BPMNEdge id="Flow_Join_BOApproved_di" bpmnElement="Flow_Join_BOApproved">
+        <di:waypoint x="1300" y="330" />
+        <di:waypoint x="1340" y="330" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_BOApproved_Yes" id="Flow_BOApproved_Yes_di">
-        <di:waypoint x="1340.0" y="215.0"/>
-        <di:waypoint x="1380.0" y="215.0"/>
+      <bpmndi:BPMNEdge id="Flow_BOApproved_Yes_di" bpmnElement="Flow_BOApproved_Yes">
+        <di:waypoint x="1390" y="330" />
+        <di:waypoint x="1430" y="330" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1403" y="305" width="14" height="14" />
+        </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_BOApproved_No" id="Flow_BOApproved_No_di">
-        <di:waypoint x="1315.0" y="190.0"/>
-        <di:waypoint x="1315.0" y="140.0"/>
-        <di:waypoint x="845.0" y="140.0"/>
-        <di:waypoint x="845.0" y="168.0"/>
+      <bpmndi:BPMNEdge id="Flow_BOApproved_No_di" bpmnElement="Flow_BOApproved_No">
+        <di:waypoint x="1365" y="305" />
+        <di:waypoint x="1365" y="225" />
+        <di:waypoint x="1348" y="225" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1371" y="255" width="19" height="14" />
+        </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_Save_Choose" id="Flow_Save_Choose_di">
-        <di:waypoint x="1510.0" y="215.0"/>
-        <di:waypoint x="1565.0" y="215.0"/>
+      <bpmndi:BPMNEdge id="Flow_Sign_Download_di" bpmnElement="Flow_Sign_Download">
+        <di:waypoint x="1490" y="290" />
+        <di:waypoint x="1490" y="260" />
+        <di:waypoint x="1625" y="260" />
+        <di:waypoint x="1625" y="290" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_Choose_Acc1" id="Flow_Choose_Acc1_di">
-        <di:waypoint x="1615.0" y="215.0"/>
-        <di:waypoint x="1638.0" y="215.0"/>
-        <di:waypoint x="1638.0" y="146.0"/>
-        <di:waypoint x="1659.0" y="146.0"/>
+      <bpmndi:BPMNEdge id="Flow_Download_Split_di" bpmnElement="Flow_Download_Split">
+        <di:waypoint x="1625" y="290" />
+        <di:waypoint x="1625" y="260" />
+        <di:waypoint x="1725" y="260" />
+        <di:waypoint x="1725" y="305" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_Choose_Acc2" id="Flow_Choose_Acc2_di">
-        <di:waypoint x="1615.0" y="215.0"/>
-        <di:waypoint x="1643.0" y="215.0"/>
-        <di:waypoint x="1643.0" y="230.0"/>
-        <di:waypoint x="1670.0" y="230.0"/>
+      <bpmndi:BPMNEdge id="Flow_Split_SaveEDO_di" bpmnElement="Flow_Split_SaveEDO">
+        <di:waypoint x="1750" y="330" />
+        <di:waypoint x="1770" y="330" />
+        <di:waypoint x="1770" y="280" />
+        <di:waypoint x="1790" y="280" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_Choose_Acc3" id="Flow_Choose_Acc3_di">
-        <di:waypoint x="1615.0" y="215.0"/>
-        <di:waypoint x="1638.0" y="215.0"/>
-        <di:waypoint x="1638.0" y="309.0"/>
-        <di:waypoint x="1670.0" y="309.0"/>
+      <bpmndi:BPMNEdge id="Flow_Split_SendSpecdep_di" bpmnElement="Flow_Split_SendSpecdep">
+        <di:waypoint x="1750" y="330" />
+        <di:waypoint x="1750" y="385" />
+        <di:waypoint x="1775" y="385" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_Email1_Receive1" id="Flow_Email1_Receive1_di">
-        <di:waypoint x="1789.0" y="181.0"/>
-        <di:waypoint x="1789.0" y="320.0"/>
-        <di:waypoint x="1850.0" y="320.0"/>
+      <bpmndi:BPMNEdge id="Flow_SendSpecdep_Receive_di" bpmnElement="Flow_SendSpecdep_Receive">
+        <di:waypoint x="1840" y="425" />
+        <di:waypoint x="1840" y="1475" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_Email2_Receive2" id="Flow_Email2_Receive2_di">
-        <di:waypoint x="1800.0" y="265.0"/>
-        <di:waypoint x="1825.0" y="265.0"/>
-        <di:waypoint x="1825.0" y="390.0"/>
-        <di:waypoint x="1850.0" y="390.0"/>
+      <bpmndi:BPMNEdge id="Flow_SaveEDO_AccSplit_di" bpmnElement="Flow_SaveEDO_AccSplit">
+        <di:waypoint x="1920" y="310" />
+        <di:waypoint x="1920" y="1128" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_Email3_Receive3" id="Flow_Email3_Receive3_di">
-        <di:waypoint x="1800.0" y="309.0"/>
-        <di:waypoint x="1825.0" y="309.0"/>
-        <di:waypoint x="1825.0" y="460.0"/>
-        <di:waypoint x="1850.0" y="460.0"/>
+      <bpmndi:BPMNEdge id="Flow_AccSplit_Check1_di" bpmnElement="Flow_AccSplit_Check1">
+        <di:waypoint x="1945" y="1153" />
+        <di:waypoint x="1965" y="1153" />
+        <di:waypoint x="1965" y="1139" />
+        <di:waypoint x="1984" y="1139" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_Receive1_Prepare1" id="Flow_Receive1_Prepare1_di">
-        <di:waypoint x="1980.0" y="320.0"/>
-        <di:waypoint x="2000.0" y="320.0"/>
-        <di:waypoint x="2000.0" y="325.0"/>
-        <di:waypoint x="2020.0" y="325.0"/>
+      <bpmndi:BPMNEdge id="Flow_AccSplit_Check2_di" bpmnElement="Flow_AccSplit_Check2">
+        <di:waypoint x="1945" y="1153" />
+        <di:waypoint x="1945" y="1208" />
+        <di:waypoint x="1985" y="1208" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_Receive2_Prepare2" id="Flow_Receive2_Prepare2_di">
-        <di:waypoint x="1980.0" y="390.0"/>
-        <di:waypoint x="2000.0" y="390.0"/>
-        <di:waypoint x="2000.0" y="395.0"/>
-        <di:waypoint x="2020.0" y="395.0"/>
+      <bpmndi:BPMNEdge id="Flow_AccSplit_Check3_di" bpmnElement="Flow_AccSplit_Check3">
+        <di:waypoint x="1945" y="1153" />
+        <di:waypoint x="1945" y="1278" />
+        <di:waypoint x="1985" y="1278" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_Receive3_Prepare3" id="Flow_Receive3_Prepare3_di">
-        <di:waypoint x="1980.0" y="460.0"/>
-        <di:waypoint x="2000.0" y="460.0"/>
-        <di:waypoint x="2000.0" y="465.0"/>
-        <di:waypoint x="2020.0" y="465.0"/>
+      <bpmndi:BPMNEdge id="Flow_Check1_Invoice1_di" bpmnElement="Flow_Check1_Invoice1">
+        <di:waypoint x="2114" y="1139" />
+        <di:waypoint x="2135" y="1139" />
+        <di:waypoint x="2135" y="1138" />
+        <di:waypoint x="2155" y="1138" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_Prepare1_Merge" id="Flow_Prepare1_Merge_di">
-        <di:waypoint x="2150.0" y="325.0"/>
-        <di:waypoint x="2175.0" y="325.0"/>
-        <di:waypoint x="2175.0" y="340.0"/>
-        <di:waypoint x="2200.0" y="340.0"/>
+      <bpmndi:BPMNEdge id="Flow_Invoice1_Yes_di" bpmnElement="Flow_Invoice1_Yes">
+        <di:waypoint x="2205" y="1138" />
+        <di:waypoint x="2295" y="1138" />
+        <di:waypoint x="2295" y="1200" />
+        <di:waypoint x="2335" y="1200" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2263" y="1120" width="14" height="14" />
+        </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_Prepare2_Merge" id="Flow_Prepare2_Merge_di">
-        <di:waypoint x="2150.0" y="395.0"/>
-        <di:waypoint x="2175.0" y="395.0"/>
-        <di:waypoint x="2175.0" y="340.0"/>
-        <di:waypoint x="2200.0" y="340.0"/>
+      <bpmndi:BPMNEdge id="Flow_06o4146_di" bpmnElement="Flow_06o4146">
+        <di:waypoint x="2180" y="1113" />
+        <di:waypoint x="2180" y="1070" />
+        <di:waypoint x="2212" y="1070" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_Prepare3_Merge" id="Flow_Prepare3_Merge_di">
-        <di:waypoint x="2150.0" y="465.0"/>
-        <di:waypoint x="2175.0" y="465.0"/>
-        <di:waypoint x="2175.0" y="340.0"/>
-        <di:waypoint x="2200.0" y="340.0"/>
+      <bpmndi:BPMNEdge id="Flow_Check2_Invoice2_di" bpmnElement="Flow_Check2_Invoice2">
+        <di:waypoint x="2115" y="1208" />
+        <di:waypoint x="2155" y="1208" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_Merge_Elec" id="Flow_Merge_Elec_di">
-        <di:waypoint x="2250.0" y="340.0"/>
-        <di:waypoint x="2310.0" y="340.0"/>
+      <bpmndi:BPMNEdge id="Flow_Invoice2_Yes_di" bpmnElement="Flow_Invoice2_Yes">
+        <di:waypoint x="2205" y="1208" />
+        <di:waypoint x="2270" y="1208" />
+        <di:waypoint x="2270" y="1200" />
+        <di:waypoint x="2335" y="1200" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2282" y="1178" width="14" height="14" />
+        </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_Elec_Yes" id="Flow_Elec_Yes_di">
-        <di:waypoint x="2360.0" y="340.0"/>
-        <di:waypoint x="2383.0" y="340.0"/>
-        <di:waypoint x="2383.0" y="325.0"/>
-        <di:waypoint x="2415.0" y="325.0"/>
+      <bpmndi:BPMNEdge id="Flow_Invoice2_No_di" bpmnElement="Flow_Invoice2_No">
+        <di:waypoint x="2205" y="1208" />
+        <di:waypoint x="2229" y="1208" />
+        <di:waypoint x="2229" y="1240" />
+        <di:waypoint x="2252" y="1240" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2220" y="1244" width="19" height="14" />
+        </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_Elec_No" id="Flow_Elec_No_di">
-        <di:waypoint x="2335.0" y="365.0"/>
-        <di:waypoint x="2335.0" y="395.0"/>
-        <di:waypoint x="2595.0" y="395.0"/>
+      <bpmndi:BPMNEdge id="Flow_Check3_Invoice3_di" bpmnElement="Flow_Check3_Invoice3">
+        <di:waypoint x="2115" y="1278" />
+        <di:waypoint x="2145" y="1278" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_TC_Send" id="Flow_TC_Send_di">
-        <di:waypoint x="2480.0" y="365.0"/>
-        <di:waypoint x="2480.0" y="415.0"/>
-        <di:waypoint x="2435.0" y="415.0"/>
-        <di:waypoint x="2435.0" y="465.0"/>
+      <bpmndi:BPMNEdge id="Flow_Invoice3_Yes_di" bpmnElement="Flow_Invoice3_Yes">
+        <di:waypoint x="2195" y="1278" />
+        <di:waypoint x="2335" y="1278" />
+        <di:waypoint x="2335" y="1200" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2314" y="1255" width="26" height="14" />
+        </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_TCReceive_Review" id="Flow_TCReceive_Review_di">
-        <di:waypoint x="2495.0" y="505.0"/>
-        <di:waypoint x="2545.0" y="505.0"/>
+      <bpmndi:BPMNEdge id="Flow_Invoice3_No_di" bpmnElement="Flow_Invoice3_No">
+        <di:waypoint x="2170" y="1303" />
+        <di:waypoint x="2170" y="1343" />
+        <di:waypoint x="2212" y="1344" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2135" y="1305" width="19" height="14" />
+        </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_TCReview_Reply" id="Flow_TCReview_Reply_di">
-        <di:waypoint x="2665.0" y="505.0"/>
-        <di:waypoint x="2715.0" y="505.0"/>
+      <bpmndi:BPMNEdge id="Flow_InvoiceFound_Check_di" bpmnElement="Flow_InvoiceFound_Check">
+        <di:waypoint x="2385" y="1200" />
+        <di:waypoint x="2405" y="1200" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_TCReply_Approvers" id="Flow_TCReply_Approvers_di">
-        <di:waypoint x="2835.0" y="505.0"/>
-        <di:waypoint x="2855.0" y="505.0"/>
-        <di:waypoint x="2855.0" y="395.0"/>
-        <di:waypoint x="2725.0" y="395.0"/>
+      <bpmndi:BPMNEdge id="Flow_Check_Decide_di" bpmnElement="Flow_Check_Decide">
+        <di:waypoint x="2535" y="1200" />
+        <di:waypoint x="2565" y="1200" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_Send_ApproverReceive" id="Flow_Send_ApproverReceive_di">
-        <di:waypoint x="2660.0" y="435.0"/>
-        <di:waypoint x="2660.0" y="510.0"/>
-        <di:waypoint x="2605.0" y="510.0"/>
-        <di:waypoint x="2605.0" y="585.0"/>
+      <bpmndi:BPMNEdge id="Flow_0dcnud6_di" bpmnElement="Flow_0dcnud6">
+        <di:waypoint x="2630" y="1155" />
+        <di:waypoint x="2630" y="1133" />
+        <di:waypoint x="2700" y="1133" />
+        <di:waypoint x="2700" y="1110" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_ApproverReceive_Review" id="Flow_ApproverReceive_Review_di">
-        <di:waypoint x="2665.0" y="625.0"/>
-        <di:waypoint x="2715.0" y="625.0"/>
+      <bpmndi:BPMNEdge id="Flow_0jjj0jq_di" bpmnElement="Flow_0jjj0jq">
+        <di:waypoint x="2630" y="1155" />
+        <di:waypoint x="2630" y="970" />
+        <di:waypoint x="2695" y="970" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_Review_Gateway" id="Flow_Review_Gateway_di">
-        <di:waypoint x="2835.0" y="625.0"/>
-        <di:waypoint x="2885.0" y="625.0"/>
+      <bpmndi:BPMNEdge id="Flow_120qsqf_di" bpmnElement="Flow_120qsqf">
+        <di:waypoint x="2630" y="1155" />
+        <di:waypoint x="2630" y="840" />
+        <di:waypoint x="2700" y="840" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_Approved_Yes" id="Flow_Approved_Yes_di">
-        <di:waypoint x="2910.0" y="600.0"/>
-        <di:waypoint x="2910.0" y="595.0"/>
-        <di:waypoint x="2935.0" y="595.0"/>
-        <di:waypoint x="2985.0" y="595.0"/>
+      <bpmndi:BPMNEdge id="Flow_1h12sj2_di" bpmnElement="Flow_1h12sj2">
+        <di:waypoint x="2630" y="1155" />
+        <di:waypoint x="2630" y="540" />
+        <di:waypoint x="2700" y="540" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_Approved_No" id="Flow_Approved_No_di">
-        <di:waypoint x="2910.0" y="650.0"/>
-        <di:waypoint x="2860.0" y="650.0"/>
-        <di:waypoint x="2860.0" y="675.0"/>
-        <di:waypoint x="2935.0" y="675.0"/>
-        <di:waypoint x="2985.0" y="675.0"/>
+      <bpmndi:BPMNEdge id="Flow_1wb3iar_di" bpmnElement="Flow_1wb3iar">
+        <di:waypoint x="2695" y="1200" />
+        <di:waypoint x="2760" y="1200" />
+        <di:waypoint x="2760" y="1300" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_Approve_Wait" id="Flow_Approve_Wait_di">
-        <di:waypoint x="3045.0" y="560.0"/>
-        <di:waypoint x="3045.0" y="470.0"/>
-        <di:waypoint x="3060.0" y="470.0"/>
-        <di:waypoint x="3060.0" y="380.0"/>
+      <bpmndi:BPMNEdge id="Flow_FinReceive_Review_di" bpmnElement="Flow_FinReceive_Review">
+        <di:waypoint x="2825" y="970" />
+        <di:waypoint x="2855" y="970" />
+        <di:waypoint x="2855" y="955" />
+        <di:waypoint x="2900" y="955" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_Reject_Correct" id="Flow_Reject_Correct_di">
-        <di:waypoint x="3065.0" y="640.0"/>
-        <di:waypoint x="3065.0" y="449.0"/>
-        <di:waypoint x="2343.0" y="449.0"/>
+      <bpmndi:BPMNEdge id="Flow_173gza1_di" bpmnElement="Flow_173gza1">
+        <di:waypoint x="2820" y="840" />
+        <di:waypoint x="2863" y="840" />
+        <di:waypoint x="2863" y="830" />
+        <di:waypoint x="2905" y="830" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_Correct_Elec" id="Flow_Correct_Elec_di">
-        <di:waypoint x="2273.0" y="409.0"/>
-        <di:waypoint x="2273.0" y="387.0"/>
-        <di:waypoint x="2335.0" y="387.0"/>
-        <di:waypoint x="2335.0" y="365.0"/>
+      <bpmndi:BPMNEdge id="Flow_0hcql26_di" bpmnElement="Flow_0hcql26">
+        <di:waypoint x="2810" y="1070" />
+        <di:waypoint x="2839" y="1070" />
+        <di:waypoint x="2839" y="1085" />
+        <di:waypoint x="2868" y="1085" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_Send_Wait" id="Flow_Send_Wait_di">
-        <di:waypoint x="2725.0" y="395.0"/>
-        <di:waypoint x="2860.0" y="395.0"/>
-        <di:waypoint x="2860.0" y="340.0"/>
-        <di:waypoint x="2995.0" y="340.0"/>
+      <bpmndi:BPMNEdge id="Flow_GenDirectorApproved_Yes_di" bpmnElement="Flow_GenDirectorApproved_Yes">
+        <di:waypoint x="2918" y="1085" />
+        <di:waypoint x="2940" y="1085" />
+        <di:waypoint x="2940" y="1100" />
+        <di:waypoint x="3150" y="1100" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2930" y="1075" width="14" height="14" />
+        </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_Wait_AllSix" id="Flow_Wait_AllSix_di">
-        <di:waypoint x="3125.0" y="340.0"/>
-        <di:waypoint x="3175.0" y="340.0"/>
+      <bpmndi:BPMNEdge id="Flow_1prskp1_di" bpmnElement="Flow_1prskp1" bioc:stroke="#831311" color:border-color="#831311">
+        <di:waypoint x="2914" y="1081" />
+        <di:waypoint x="3070" y="1050" />
+        <di:waypoint x="3539" y="1050" />
+        <di:waypoint x="3539" y="1070" />
+        <di:waypoint x="4160" y="1070" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_AllSix_Yes" id="Flow_AllSix_Yes_di">
-        <di:waypoint x="3200.0" y="365.0"/>
-        <di:waypoint x="3200.0" y="533.0"/>
-        <di:waypoint x="3145.0" y="533.0"/>
-        <di:waypoint x="3145.0" y="700.0"/>
+      <bpmndi:BPMNEdge id="Flow_FinApproved_Yes_di" bpmnElement="Flow_FinApproved_Yes">
+        <di:waypoint x="2935" y="970" />
+        <di:waypoint x="3050" y="970" />
+        <di:waypoint x="3050" y="955" />
+        <di:waypoint x="3165" y="955" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="3048" y="944" width="14" height="14" />
+        </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_AllSix_No" id="Flow_AllSix_No_di">
-        <di:waypoint x="3225.0" y="340.0"/>
-        <di:waypoint x="3255.0" y="340.0"/>
-        <di:waypoint x="3255.0" y="280.0"/>
-        <di:waypoint x="3060.0" y="280.0"/>
-        <di:waypoint x="3060.0" y="300.0"/>
+      <bpmndi:BPMNEdge id="Flow_0nipf8x_di" bpmnElement="Flow_0nipf8x" bioc:stroke="#831311" color:border-color="#831311">
+        <di:waypoint x="2933" y="972" />
+        <di:waypoint x="3110" y="985" />
+        <di:waypoint x="4150" y="985" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_Upload_Verify" id="Flow_Upload_Verify_di">
-        <di:waypoint x="3215.0" y="740.0"/>
-        <di:waypoint x="3245.0" y="740.0"/>
-        <di:waypoint x="3245.0" y="855.0"/>
-        <di:waypoint x="3275.0" y="855.0"/>
+      <bpmndi:BPMNEdge id="Flow_Approved_Yes_di" bpmnElement="Flow_Approved_Yes">
+        <di:waypoint x="2955" y="830" />
+        <di:waypoint x="3033" y="830" />
+        <di:waypoint x="3033" y="810" />
+        <di:waypoint x="3170" y="810" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2967" y="803" width="14" height="14" />
+        </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_Verify_Approve" id="Flow_Verify_Approve_di">
-        <di:waypoint x="3415.0" y="855.0"/>
-        <di:waypoint x="3475.0" y="855.0"/>
+      <bpmndi:BPMNEdge id="Flow_1evhwgl_di" bpmnElement="Flow_1evhwgl" bioc:stroke="#831311" color:border-color="#831311">
+        <di:waypoint x="2953" y="833" />
+        <di:waypoint x="3520" y="890" />
+        <di:waypoint x="3620" y="890" />
+        <di:waypoint x="4140" y="844" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_Approve_SignSpecDep" id="Flow_Approve_SignSpecDep_di">
-        <di:waypoint x="3615.0" y="855.0"/>
-        <di:waypoint x="3645.0" y="855.0"/>
-        <di:waypoint x="3645.0" y="975.0"/>
-        <di:waypoint x="3675.0" y="975.0"/>
+      <bpmndi:BPMNEdge id="Flow_0594g7c_di" bpmnElement="Flow_0594g7c">
+        <di:waypoint x="3295" y="955" />
+        <di:waypoint x="3345" y="955" />
+        <di:waypoint x="3345" y="1190" />
+        <di:waypoint x="3395" y="1190" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="Flow_SignSpecDep_End" id="Flow_SignSpecDep_End_di">
-        <di:waypoint x="3825.0" y="975.0"/>
-        <di:waypoint x="3885.0" y="975.0"/>
+      <bpmndi:BPMNEdge id="Flow_RE_Receive_Elec_di" bpmnElement="Flow_RE_Receive_Elec">
+        <di:waypoint x="2820" y="540" />
+        <di:waypoint x="2865" y="540" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_RE_Elec_Yes_di" bpmnElement="Flow_RE_Elec_Yes">
+        <di:waypoint x="2890" y="515" />
+        <di:waypoint x="2890" y="480" />
+        <di:waypoint x="3015" y="480" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2883" y="449" width="29" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1h1mjoi_di" bpmnElement="Flow_1h1mjoi">
+        <di:waypoint x="3290" y="810" />
+        <di:waypoint x="3343" y="810" />
+        <di:waypoint x="3343" y="1220" />
+        <di:waypoint x="3395" y="1220" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_16hr94m_di" bpmnElement="Flow_16hr94m">
+        <di:waypoint x="3080" y="525" />
+        <di:waypoint x="3080" y="630" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0838qz5_di" bpmnElement="Flow_0838qz5">
+        <di:waypoint x="3130" y="670" />
+        <di:waypoint x="3165" y="670" />
+        <di:waypoint x="3165" y="500" />
+        <di:waypoint x="3200" y="500" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1qne11v_di" bpmnElement="Flow_1qne11v">
+        <di:waypoint x="3300" y="500" />
+        <di:waypoint x="3320" y="500" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_14ubf5x_di" bpmnElement="Flow_14ubf5x">
+        <di:waypoint x="3440" y="500" />
+        <di:waypoint x="3453" y="500" />
+        <di:waypoint x="3453" y="470" />
+        <di:waypoint x="3465" y="470" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1hxna39_di" bpmnElement="Flow_1hxna39" bioc:stroke="#831311" color:border-color="#831311">
+        <di:waypoint x="4250" y="460" />
+        <di:waypoint x="4280" y="460" />
+        <di:waypoint x="4280" y="1200" />
+        <di:waypoint x="4310" y="1200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_052m2m7_di" bpmnElement="Flow_052m2m7" bioc:stroke="#831311" color:border-color="#831311">
+        <di:waypoint x="4240" y="820" />
+        <di:waypoint x="4275" y="820" />
+        <di:waypoint x="4275" y="1200" />
+        <di:waypoint x="4310" y="1200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_15d3cff_di" bpmnElement="Flow_15d3cff" bioc:stroke="#831311" color:border-color="#831311">
+        <di:waypoint x="4250" y="955" />
+        <di:waypoint x="4280" y="955" />
+        <di:waypoint x="4280" y="1200" />
+        <di:waypoint x="4310" y="1200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_17cu58e_di" bpmnElement="Flow_17cu58e">
+        <di:waypoint x="3270" y="1100" />
+        <di:waypoint x="3333" y="1100" />
+        <di:waypoint x="3333" y="1220" />
+        <di:waypoint x="3395" y="1220" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_055dkew_di" bpmnElement="Flow_055dkew">
+        <di:waypoint x="3600" y="600" />
+        <di:waypoint x="3600" y="860" />
+        <di:waypoint x="3460" y="860" />
+        <di:waypoint x="3460" y="1180" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1rpaxnj_di" bpmnElement="Flow_1rpaxnj">
+        <di:waypoint x="3525" y="1220" />
+        <di:waypoint x="3575" y="1220" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_01bnlkz_di" bpmnElement="Flow_01bnlkz" bioc:stroke="#831311" color:border-color="#831311">
+        <di:waypoint x="3515" y="470" />
+        <di:waypoint x="3833" y="470" />
+        <di:waypoint x="3833" y="460" />
+        <di:waypoint x="4150" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0jeel9d_di" bpmnElement="Flow_0jeel9d">
+        <di:waypoint x="3490" y="495" />
+        <di:waypoint x="3490" y="560" />
+        <di:waypoint x="3540" y="560" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0u1fopw_di" bpmnElement="Flow_0u1fopw">
+        <di:waypoint x="4420" y="1385" />
+        <di:waypoint x="4420" y="1430" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0ple2v3_di" bpmnElement="Flow_0ple2v3">
+        <di:waypoint x="4480" y="1470" />
+        <di:waypoint x="4542" y="1470" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1902e6d_di" bpmnElement="Flow_1902e6d">
+        <di:waypoint x="2840" y="1345" />
+        <di:waypoint x="4100" y="1345" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1yv3scw_di" bpmnElement="Flow_1yv3scw">
+        <di:waypoint x="3625" y="1220" />
+        <di:waypoint x="3705" y="1220" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="3659" y="1202" width="13" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Avancor_Export_di" bpmnElement="Flow_Avancor_Export">
+        <di:waypoint x="3835" y="1220" />
+        <di:waypoint x="3895" y="1220" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Verify_Approve_di" bpmnElement="Flow_Verify_Approve">
+        <di:waypoint x="4240" y="1345" />
+        <di:waypoint x="4380" y="1345" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Export_Upload_di" bpmnElement="Flow_Export_Upload">
+        <di:waypoint x="4025" y="1230" />
+        <di:waypoint x="4090" y="1230" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Upload_Verify_di" bpmnElement="Flow_Upload_Verify">
+        <di:waypoint x="4160" y="1270" />
+        <di:waypoint x="4160" y="1305" />
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>
-</definitions>
+</bpmn:definitions>
